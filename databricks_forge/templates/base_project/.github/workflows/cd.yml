@@ -1,0 +1,33 @@
+name: CD Pipeline (Databricks CE Deploy)
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  deploy-to-databricks-ce:
+    name: Deploy to Databricks Workspace
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Databricks Forge CLI & Dependencies
+        run: |
+          python -m pip install --upgrade pip build wheel
+          pip install databricks-forge-cli
+
+      - name: Build and Deploy to Databricks Workspace
+        env:
+          DATABRICKS_HOST: {% raw %}${{ secrets.DATABRICKS_HOST }}{% endraw %}
+          DATABRICKS_TOKEN: {% raw %}${{ secrets.DATABRICKS_TOKEN }}{% endraw %}
+        run: |
+          forge deploy \
+            --target-path "/Shared/forge_deployments/{{project_slug}}" \
+            --upload-notebook

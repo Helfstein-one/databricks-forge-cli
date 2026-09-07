@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "{{project_slug}}"
+version = "0.1.0"
+description = "{{description}}"
+authors = [
+    { name = "{{author_name}}", email = "{{author_email}}" }
+]
+license = { text = "Apache-2.0" }
+requires-python = ">=3.10"
+dependencies = [
+    "pyspark=={{pyspark_version}}",
+    "delta-spark=={{delta_version}}",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-benchmark>=4.0.0",
+    "pytest-mock>=3.12.0",
+    "chispa>=0.9.4",
+    "ruff>=0.1.0",
+    "build>=1.0.0",
+]
+remote = [
+    "databricks-connect>=14.0.0,<15.0.0",
+]
+
+[project.scripts]
+{{project_slug}} = "{{project_slug}}.entrypoint:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

@@ -1,0 +1,166 @@
+<mxfile host="Electron" modified="2026-09-07T23:50:00.000Z" agent="5.0" version="21.6.8" type="device">
+  <diagram id="databricks-forge-arch" name="Databricks Forge Architecture">
+    <mxGraphModel dx="1422" dy="850" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- TITLE BANNER -->
+        <mxCell id="title" value="Databricks Forge Architecture &amp; Hybrid Execution Lifecycle" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1;fontColor=#1E293B;" vertex="1" parent="1">
+          <mxGeometry x="380" y="30" width="840" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- ZONE 1: LOCAL DEVELOPER WORKSPACE -->
+        <mxCell id="zone_local" value="1. Local Developer Workstation" style="swimlane;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#F8FAFC;strokeColor=#3B82F6;startSize=30;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="110" width="460" height="680" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="cli_node" value="Databricks Forge CLI&#xa;(forge init / build / deploy / check)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E40AF;fontColor=#FFFFFF;fontStyle=1;fontSize=13;strokeColor=#1E3A8A;" vertex="1" parent="zone_local">
+          <mxGeometry x="40" y="50" width="380" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="sub_code" value="Scaffolded Project Code&#xa;src/{{project_slug}}&#xa;• session.py (Hybrid Factory)&#xa;• catalog.py (Delta/Metastore Abstraction)&#xa;• pipelines/example_pipeline.py&#xa;• entrypoint.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#93C5FD;align=left;spacingLeft=15;fontSize=11;" vertex="1" parent="zone_local">
+          <mxGeometry x="40" y="125" width="380" height="110" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="sub_docker" value="Docker Development Environment&#xa;• Python 3.11 + OpenJDK 11&#xa;• PySpark 3.5.0 + Delta-Spark 3.0.0&#xa;• Volume: local_data_lake (/data_lake)&#xa;• Zero Cloud Cost Testing" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#F59E0B;align=left;spacingLeft=15;fontSize=11;" vertex="1" parent="zone_local">
+          <mxGeometry x="40" y="260" width="380" height="95" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="sub_tests" value="Robust Test Suites&#xa;• tests/unit: Chispa (assert_df_equality)&#xa;• tests/integration: CatalogManager Disk I/O&#xa;• tests/performance: pytest-benchmark" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECFDF5;strokeColor=#10B981;align=left;spacingLeft=15;fontSize=11;" vertex="1" parent="zone_local">
+          <mxGeometry x="40" y="380" width="380" height="85" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="sub_connect" value="Databricks Connect v2 Mode&#xa;• EXECUTION_MODE=remote&#xa;• DatabricksSession.builder.remote()&#xa;• Direct remote DataFrame execution" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#8B5CF6;align=left;spacingLeft=15;fontSize=11;" vertex="1" parent="zone_local">
+          <mxGeometry x="40" y="490" width="380" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="sub_dist" value="Compiled Wheel Artifact (.whl)&#xa;Generated in dist/ by forge build" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#FFFBEB;strokeColor=#D97706;size=14;fontStyle=1;" vertex="1" parent="zone_local">
+          <mxGeometry x="110" y="595" width="240" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ZONE 2: GITHUB ACTIONS CI/CD -->
+        <mxCell id="zone_cicd" value="2. GitHub Actions Automation Esteira" style="swimlane;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#F8FAFC;strokeColor=#10B981;startSize=30;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="570" y="110" width="450" height="680" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="ci_job" value="CI Pipeline (.github/workflows/ci.yml)&#xa;• Linting (Ruff check &amp; format)&#xa;• OpenJDK 11 Setup + Chispa Unit Tests&#xa;• Performance &amp; Volumetry Benchmarks&#xa;• Distribution Wheel Build &amp; Artifact Store" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECFDF5;strokeColor=#059669;align=left;spacingLeft=15;fontSize=12;" vertex="1" parent="zone_cicd">
+          <mxGeometry x="35" y="60" width="380" height="130" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="git_merge" value="Main Branch Merge / Release Trigger" style="rhombus;whiteSpace=wrap;html=1;fillColor=#F3F4F6;strokeColor=#6B7280;fontStyle=1;fontSize=11;" vertex="1" parent="zone_cicd">
+          <mxGeometry x="120" y="240" width="210" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="cd_job" value="CD Pipeline (.github/workflows/cd.yml)&#xa;• Databricks Secrets Injection:&#xa;  - DATABRICKS_HOST&#xa;  - DATABRICKS_TOKEN&#xa;• Automated forge deploy:&#xa;  - Workspace Import API v2.0&#xa;  - Binary Wheel Upload (.whl)&#xa;  - Companion Runner Notebook Upload" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;align=left;spacingLeft=15;fontSize=12;" vertex="1" parent="zone_cicd">
+          <mxGeometry x="35" y="370" width="380" height="170" as="geometry" />
+        </mxCell>
+
+        <!-- ZONE 3: DATABRICKS COMMUNITY EDITION -->
+        <mxCell id="zone_databricks" value="3. Databricks Community Edition (CE) Runtime" style="swimlane;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#F8FAFC;strokeColor=#FF3621;startSize=30;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="1070" y="110" width="470" height="680" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="dbx_api" value="Databricks Workspace Import API&#xa;POST /api/2.0/workspace/import&#xa;(Handles Base64 binaries and source notebooks)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEE2E2;strokeColor=#DC2626;fontStyle=1;fontSize=12;" vertex="1" parent="zone_databricks">
+          <mxGeometry x="45" y="60" width="380" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="dbx_workspace" value="Databricks Workspace Target (/Shared/forge_deployments/)&#xa;├── {{project_slug}}-0.1.0-py3-none-any.whl&#xa;└── run_pipeline_notebook (Interactive Runner)" style="shape=folder;fontStyle=1;spacingTop=10;tabWidth=220;tabHeight=30;tabPosition=left;html=1;whiteSpace=wrap;fillColor=#FEF3C7;strokeColor=#D97706;align=left;spacingLeft=20;fontSize=11;" vertex="1" parent="zone_databricks">
+          <mxGeometry x="45" y="160" width="380" height="100" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="dbx_runner" value="CE Runner Notebook (run_pipeline_notebook)&#xa;• Databricks Interactive Widgets:&#xa;  - row_count, log_level, mode&#xa;• %pip install {{project_slug}}.whl&#xa;• Medallion Architecture Execution:&#xa;  - Bronze Ingestion&#xa;  - Silver Standardization&#xa;  - Gold Aggregation &amp; Metrics&#xa;• display(gold_df) &amp; Automated Assertions" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF1F2;strokeColor=#E11D48;align=left;spacingLeft=15;fontSize=12;" vertex="1" parent="zone_databricks">
+          <mxGeometry x="45" y="300" width="380" height="190" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="dbx_cluster" value="Active Community Edition Cluster&#xa;DBR 14.x / 15.x (Apache Spark 3.5.x, Delta 3.x, Single-Node)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E293B;fontColor=#FFFFFF;fontStyle=1;fontSize=12;strokeColor=#0F172A;" vertex="1" parent="zone_databricks">
+          <mxGeometry x="45" y="530" width="380" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dbx_catalog" value="Databricks Metastore / Delta Tables&#xa;default.{{project_slug}}_bronze / _silver / _gold" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#DBEAFE;strokeColor=#3B82F6;fontStyle=1;" vertex="1" parent="zone_databricks">
+          <mxGeometry x="115" y="605" width="240" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- CONNECTING ARROWS -->
+        <mxCell id="edge1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#10B981;" edge="1" parent="1" source="cli_node" target="ci_job">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="545" y="185" />
+              <mxPoint x="545" y="235" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge1_lbl" value="git push" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;fontStyle=1;" vertex="1" connectable="0" parent="edge1">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="edge2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#059669;" edge="1" parent="1" source="ci_job" target="git_merge">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge2_lbl" value="Tests Pass" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;fontStyle=1;" vertex="1" connectable="0" parent="edge2">
+          <mxGeometry x="-0.1" y="-1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="edge3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#2563EB;" edge="1" parent="1" source="git_merge" target="cd_job">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge3_lbl" value="Approved" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;fontStyle=1;" vertex="1" connectable="0" parent="edge3">
+          <mxGeometry x="-0.1" y="-1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="edge4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#DC2626;" edge="1" parent="1" source="cd_job" target="dbx_api">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1040" y="565" />
+              <mxPoint x="1040" y="200" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge4_lbl" value="forge deploy" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;fontStyle=1;" vertex="1" connectable="0" parent="edge4">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="edge5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#D97706;" edge="1" parent="1" source="dbx_api" target="dbx_workspace">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edge6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#E11D48;" edge="1" parent="1" source="dbx_workspace" target="dbx_runner">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edge7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2;strokeColor=#0F172A;" edge="1" parent="1" source="dbx_runner" target="dbx_cluster">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edge8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryPerimeter=1;strokeWidth=2;strokeColor=#3B82F6;" edge="1" parent="1" source="dbx_cluster" target="dbx_catalog">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edge_connect" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;dashed=1;strokeColor=#8B5CF6;" edge="1" parent="1" source="sub_connect" target="dbx_cluster">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="545" y="640" />
+              <mxPoint x="545" y="730" />
+              <mxPoint x="1050" y="730" />
+              <mxPoint x="1050" y="670" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge_connect_lbl" value="Databricks Connect v2 RPC" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;fontStyle=1;" vertex="1" connectable="0" parent="edge_connect">
+          <mxGeometry x="0.1" y="-1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

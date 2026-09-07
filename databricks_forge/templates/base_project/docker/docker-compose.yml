@@ -1,0 +1,19 @@
+services:
+  spark-dev:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: {{project_slug}}-spark-dev
+    volumes:
+      - ..:/app
+      - local_data_lake:/app/data_lake
+    environment:
+      - EXECUTION_MODE=local
+      - LOCAL_STORAGE_PATH=/app/data_lake
+      - DATABRICKS_HOST=${DATABRICKS_HOST}
+      - DATABRICKS_TOKEN=${DATABRICKS_TOKEN}
+      - DATABRICKS_CLUSTER_ID=${DATABRICKS_CLUSTER_ID}
+    command: pytest tests/unit/ -v
+
+volumes:
+  local_data_lake:

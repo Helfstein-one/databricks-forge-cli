@@ -1,0 +1,110 @@
+# {{project_name}}
+
+{{description}}
+
+Built and managed with **[Databricks Forge CLI](https://github.com/Helfstein-one/databricks-forge-cli)**.
+
+---
+
+## 🏗️ Architecture & Execution Modes
+
+This project supports the **Execution Triad**:
+
+1. **Local Docker Environment**: Run PySpark 3.5 + Delta Lake 3.0 locally in an isolated container without cloud costs.
+2. **Databricks Connect v2**: Develop locally in VS Code or PyCharm while executing computations directly on an interactive Databricks cluster.
+3. **Databricks Community Edition (CE)**: Build wheel artifacts and deploy them directly to your Databricks CE workspace via the REST Workspace API.
+
+---
+
+## 🚀 Quick Start
+
+### 1. Local Environment Setup
+
+```bash
+# Clone and enter directory
+cd {{project_slug}}
+
+# Copy environment variables
+cp .env.example .env
+
+# Install dependencies locally (requires Java 11 & Python 3.10+)
+make install
+
+# Or use Docker to avoid installing Java locally:
+make docker-test
+```
+
+### 2. Running Tests
+
+```bash
+# Run unit tests with Chispa (assert_df_equality)
+make unit-test
+
+# Run catalog persistence integration tests
+make integration-test
+
+# Run performance throughput benchmarks
+make perf-test
+```
+
+### 3. Local Pipeline Execution
+
+```bash
+make run-local
+```
+
+### 4. Build & Deploy to Databricks Community Edition
+
+```bash
+# 1. Compile the wheel package
+make build
+
+# 2. Deploy wheel and runner notebook to Databricks CE
+forge deploy \
+  --host "https://community.cloud.databricks.com" \
+  --token "your-personal-access-token" \
+  --target-path "/Shared/forge_deployments/{{project_slug}}"
+```
+
+### 5. Running the Pipeline in Databricks Community Edition
+
+After running `forge deploy`:
+1. Open your Databricks Community Edition workspace.
+2. Navigate to `/Shared/forge_deployments/{{project_slug}}/run_pipeline_notebook`.
+3. Attach your active cluster.
+4. Click **Run All**. The notebook will load the deployed wheel and execute the Medallion pipeline.
+
+---
+
+## 📂 Project Structure
+
+```text
+.
+├── .github/workflows/
+│   ├── ci.yml                 # Lint, Chispa tests, benchmark & wheel build
+│   └── cd.yml                 # Automated deployment to Databricks CE
+├── config/
+│   ├── local_config.yaml      # Local lakehouse settings
+│   └── databricks_ce.yaml     # Databricks CE catalog settings
+├── docker/
+│   ├── Dockerfile             # Java 11 + PySpark 3.5 + Delta 3.0
+│   └── docker-compose.yml     # Local lake volume mount
+├── notebooks/
+│   └── run_pipeline_notebook.py # Databricks CE Runner Notebook
+├── src/{{project_slug}}/
+│   ├── __init__.py
+│   ├── catalog.py             # Delta Local vs Databricks Metastore
+│   ├── session.py             # Hybrid SparkSession factory
+│   ├── entrypoint.py          # Command line runner
+│   └── pipelines/
+│       ├── __init__.py
+│       └── example_pipeline.py# Bronze -> Silver -> Gold transformations
+├── tests/
+│   ├── conftest.py
+│   ├── unit/test_transforms.py
+│   ├── integration/test_catalog.py
+│   └── performance/test_throughput.py
+├── Makefile
+├── pyproject.toml
+└── .env.example
+```

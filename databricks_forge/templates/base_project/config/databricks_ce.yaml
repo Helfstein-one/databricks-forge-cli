@@ -1,0 +1,14 @@
+# Databricks Community Edition (and Connect) Configuration
+environment: "databricks_ce"
+execution_mode: "remote"
+
+catalog:
+  database: "default"
+  tables:
+    bronze: "default.{{project_slug}}_bronze"
+    silver: "default.{{project_slug}}_silver"
+    gold: "default.{{project_slug}}_gold"
+
+spark:
+  app_name: "{{project_name}}-Databricks"
+  sql_shuffle_partitions: "8"

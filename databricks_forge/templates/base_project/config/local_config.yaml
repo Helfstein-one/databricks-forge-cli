@@ -1,0 +1,16 @@
+# Local Development Configuration
+environment: "local"
+execution_mode: "local"
+
+storage:
+  root_path: "./data_lake"
+  bronze_path: "./data_lake/bronze"
+  silver_path: "./data_lake/silver"
+  gold_path: "./data_lake/gold"
+
+spark:
+  app_name: "{{project_name}}-Local"
+  master: "local[*]"
+  driver_memory: "4g"
+  sql_shuffle_partitions: "4"
+  delta_log_store: "org.apache.spark.sql.delta.storage.HDFSLogStore"
