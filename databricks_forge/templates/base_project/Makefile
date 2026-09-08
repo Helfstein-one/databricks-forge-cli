@@ -1,4 +1,4 @@
-.PHONY: help install lint test unit-test integration-test perf-test docker-build docker-test run-local dag-validate dag-run sql-run build deploy clean
+.PHONY: help install lint test unit-test integration-test perf-test docker-build docker-test run-local stream-run optimize dag-validate dag-run sql-run build deploy clean
 
 help:
 	@echo "Available commands for {{project_name}}:"
@@ -10,7 +10,9 @@ help:
 	@echo "  make perf-test         Run performance benchmarks"
 	@echo "  make docker-build      Build local PySpark Docker container"
 	@echo "  make docker-test       Run unit tests inside Docker container"
-	@echo "  make run-local         Execute pipeline locally"
+	@echo "  make run-local         Execute batch pipeline locally"
+	@echo "  make stream-run        Execute streaming micro-batch pipeline"
+	@echo "  make optimize          Run Delta Lake OPTIMIZE with Z-ORDER"
 	@echo "  make dag-validate      Validate workflow.yaml DAG dependencies"
 	@echo "  make dag-run           Execute full multi-job DAG"
 	@echo "  make sql-run           Execute SQL transformation scripts"
@@ -45,6 +47,12 @@ docker-test:
 
 run-local:
 	python -m {{project_slug}}.entrypoint --mode local --rows 500
+
+stream-run:
+	python -c "from {{project_slug}}.session import get_spark; from {{project_slug}}.pipelines.streaming_pipeline import start_streaming_pipeline; spark = get_spark(); start_streaming_pipeline(spark, 'transactions_bronze', 'transactions_silver_stream', '/tmp/checkpoints', trigger_available_now=True)"
+
+optimize:
+	forge tune optimize transactions_silver --zorder user_id,date
 
 dag-validate:
 	forge dag validate --file workflow.yaml

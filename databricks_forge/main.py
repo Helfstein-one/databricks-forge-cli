@@ -34,6 +34,13 @@ from databricks_forge.core.secrets import (
     load_dotenv_file,
     sync_env_to_scope,
 )
+from databricks_forge.core.tuning import (
+    TUNING_PROFILES,
+    build_optimize_statement,
+    build_vacuum_statement,
+    execute_optimize,
+    get_tuning_configs,
+)
 from databricks_forge.core.workflow import (
     DAGCycleError,
     DAGValidationError,
@@ -57,11 +64,13 @@ sql_app = typer.Typer(name="sql", help="🗄️ SQL Job execution and workspace 
 dag_app = typer.Typer(name="dag", help="🌐 Multi-job DAG orchestration and dependency management.")
 compute_app = typer.Typer(name="compute", help="💻 Machine types and cluster compute catalogs.")
 secret_app = typer.Typer(name="secret", help="🔒 Databricks Secrets and environment variables management.")
+tune_app = typer.Typer(name="tune", help="⚡ Spark & Delta Lake performance tuning.")
 
 app.add_typer(sql_app)
 app.add_typer(dag_app)
 app.add_typer(compute_app)
 app.add_typer(secret_app)
+app.add_typer(tune_app)
 
 console = Console()
 
@@ -181,6 +190,9 @@ def init(
         table.add_column("Components", style="white")
 
         table.add_row("Core Lakehouse", f"src/{slug}/ (session.py, catalog.py, pipelines, entrypoint.py)")
+        table.add_row("Streaming Engine", f"src/{slug}/pipelines/streaming_pipeline.py, notebooks/run_streaming_notebook.py")
+        table.add_row("Performance Tuning", f"src/{slug}/tuning.py (AQE, OPTIMIZE, Z-ORDER, VACUUM)")
+        table.add_row("Structured Logging", f"src/{slug}/logging.py (JSON Telemetry, @pipeline_audit_step)")
         table.add_row("SQL Jobs", "sql/01_clean_transactions.sql, sql/02_gold_metrics.sql")
         table.add_row("DAG Orchestration", "workflow.yaml, notebooks/master_dag_runner.py")
         table.add_row("CE Notebooks", "notebooks/run_pipeline_notebook.py (Interactive Widgets)")
@@ -193,6 +205,7 @@ def init(
         console.print(f"\n[bold green]✔ Successfully created {len(files)} files in {target_path}[/bold green]")
         console.print("\n[bold yellow]Quick Commands:[/bold yellow]")
         console.print(f"  • [cyan]cd {target_path}[/cyan]")
+        console.print("  • [cyan]forge tune config[/cyan] (Inspect Spark AQE & Delta Lake performance presets)")
         console.print("  • [cyan]make dag-validate[/cyan] (Validate workflow.yaml dependency graph)")
         console.print("  • [cyan]make sql-run[/cyan]      (Execute SQL transformations)")
         console.print("  • [cyan]make docker-test[/cyan]  (Run unit tests in Docker container)")
@@ -712,6 +725,93 @@ def secret_sync_env_cmd(
     except Exception as exc:
         console.print(f"[bold red]Failed to sync secrets:[/bold red] {exc}")
         raise typer.Exit(code=1)
+
+
+# =========================================================================
+# PERFORMANCE TUNING & DELTA LAKE COMMANDS
+# =========================================================================
+
+@tune_app.command(name="optimize")
+def tune_optimize_cmd(
+    table_name: str = typer.Argument(..., help="Delta table identifier (e.g. 'customer_360_silver') or path."),
+    zorder: Optional[str] = typer.Option(None, "--zorder", "-z", help="Comma-separated columns for Z-Ordering (e.g. 'user_id,date')."),
+    profile: str = typer.Option("balanced", "--profile", "-p", help="Tuning profile: 'balanced', 'write_heavy', or 'read_heavy'."),
+):
+    """⚡ Generate or execute Delta Lake file compaction and Z-Ordering optimization."""
+    zorder_cols = [c.strip() for c in zorder.split(",") if c.strip()] if zorder else None
+    stmt = build_optimize_statement(table_name, zorder_cols)
+
+    console.print(Panel(
+        f"[bold cyan]Target Table:[/bold cyan]    [bold green]{table_name}[/bold green]\n"
+        f"[bold cyan]Z-Order Columns:[/bold cyan] [yellow]{', '.join(zorder_cols) if zorder_cols else 'None (Linear Compaction)'}[/yellow]\n"
+        f"[bold cyan]Tuning Profile:[/bold cyan]  [magenta]{profile}[/magenta]\n\n"
+        f"[bold white]Optimized SQL Statement:[/bold white]\n"
+        f"[bold yellow]{stmt};[/bold yellow]",
+        title="⚡ Delta Lake Optimization Plan",
+        border_style="cyan",
+    ))
+
+    configs = get_tuning_configs(profile)
+    table = Table(title=f"Recommended Spark AQE Configurations ({profile})", show_header=True)
+    table.add_column("Spark Configuration Key", style="cyan")
+    table.add_column("Value", style="green")
+
+    for k, v in configs.items():
+        table.add_row(k, v)
+    console.print(table)
+    console.print("[dim]Run in Databricks Notebook or SQL Job via: [cyan]forge sql run[/cyan] or [cyan]make optimize[/cyan][/dim]")
+
+
+@tune_app.command(name="vacuum")
+def tune_vacuum_cmd(
+    table_name: str = typer.Argument(..., help="Delta table identifier or file path."),
+    retention_hours: int = typer.Option(168, "--retention", "-r", help="Retention threshold in hours (default: 168 = 7 days)."),
+):
+    """🧹 Safely prune obsolete Delta Lake historical snapshots and uncommitted files."""
+    stmt = build_vacuum_statement(table_name, retention_hours)
+
+    console.print(Panel(
+        f"[bold cyan]Target Table:[/bold cyan]    [bold green]{table_name}[/bold green]\n"
+        f"[bold cyan]Retention Period:[/bold cyan][yellow]{retention_hours} hours ({retention_hours // 24} days)[/yellow]\n\n"
+        f"[bold white]Vacuum SQL Statement:[/bold white]\n"
+        f"[bold yellow]{stmt};[/bold yellow]\n\n"
+        f"[dim]Note: Files older than {retention_hours} hours will be permanently deleted.[/dim]",
+        title="🧹 Delta Lake Maintenance (VACUUM)",
+        border_style="yellow",
+    ))
+
+
+@tune_app.command(name="config")
+def tune_config_cmd(
+    profile: str = typer.Option("balanced", "--profile", "-p", help="Tuning profile: 'balanced', 'write_heavy', or 'read_heavy'."),
+):
+    """⚙️ Display recommended Spark AQE and Delta Lake tuning parameters."""
+    if profile not in TUNING_PROFILES:
+        console.print(f"[bold red]Error:[/bold red] Profile must be one of: {list(TUNING_PROFILES.keys())}")
+        raise typer.Exit(code=1)
+
+    configs = get_tuning_configs(profile)
+    table = Table(title=f"Spark & Delta Lake Performance Tuning Defaults ({profile.upper()})", show_header=True)
+    table.add_column("Spark Configuration Key", style="cyan")
+    table.add_column("Preset Value", style="green")
+    table.add_column("Engine Impact", style="dim")
+
+    descriptions = {
+        "spark.sql.adaptive.enabled": "Enables dynamic query plan restructuring at runtime based on statistics",
+        "spark.sql.adaptive.coalescePartitions.enabled": "Automatically merges small shuffle partitions to eliminate overhead",
+        "spark.sql.adaptive.skewJoin.enabled": "Detects and dynamically splits skewed join partitions to prevent stragglers",
+        "spark.sql.adaptive.localShuffleReader.enabled": "Optimizes shuffle reads when partitions can be read locally",
+        "spark.sql.adaptive.advisoryPartitionSizeInBytes": "Target shuffle partition size (e.g. 64MB / 128MB)",
+        "spark.databricks.delta.optimizeWrite.enabled": "Dynamically coalesces small writes to reduce number of created files",
+        "spark.databricks.delta.autoCompact.enabled": "Compacts small files into larger ~128MB Delta files after writes",
+        "spark.sql.shuffle.partitions": "Initial shuffle partition count",
+    }
+
+    for k, v in configs.items():
+        desc = descriptions.get(k, "Spark runtime tuning parameter")
+        table.add_row(k, v, desc)
+
+    console.print(table)
 
 
 # =========================================================================

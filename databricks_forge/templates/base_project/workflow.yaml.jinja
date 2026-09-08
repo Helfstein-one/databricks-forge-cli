@@ -42,3 +42,21 @@ tasks:
     parameters:
       row_count: "1000"
       log_level: "INFO"
+
+  - name: "streaming_microbatch_notebook"
+    type: "notebook"
+    description: "Executes Structured Streaming micro-batch with Delta watermarking"
+    depends_on:
+      - "clean_silver_sql"
+    path: "notebooks/run_streaming_notebook.py"
+    parameters:
+      trigger_mode: "available_now"
+      watermark_delay: "10 minutes"
+
+  - name: "optimize_silver_table"
+    type: "sql"
+    description: "Performs Delta Lake OPTIMIZE and Z-ORDER clustering on silver tables"
+    depends_on:
+      - "streaming_microbatch_notebook"
+    file: "sql/03_optimize_tables.sql"
+

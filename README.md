@@ -23,6 +23,9 @@ O **`databricks-forge-cli`** é a ferramenta definitiva de engenharia de dados m
 
 ### Principais Pilares:
 - 🎨 **CLI Visual & Interativa**: Banner ASCII estilizado (`DATABRICKS FORGE CLI`) e feedback rico no terminal via Rich.
+- ⚡ **Template Structured Streaming**: Ingestão contínua e micro-batch (`trigger(availableNow=True)`) com Delta Lake, watermarking de 10 minutos, janelas deslizantes/tumbling de 5 minutos e checkpoints tolerantes a falhas.
+- 🚀 **Tuning & Otimização de Performance**: Comandos `forge tune` para compactação de arquivos Delta (`OPTIMIZE`), clustering multidimensional (`ZORDER BY`), limpeza segura de snapshots (`VACUUM`) e perfis de Spark AQE (`balanced`, `write_heavy`, `read_heavy`).
+- 📊 **Logging Estruturado & Observabilidade**: Formatador JSON ISO 8601 para agregadores de logs (Datadog, CloudWatch), decorator de auditoria `@pipeline_audit_step` para medição automática de latência e contagem de linhas, e gravação em tabela Delta de auditoria (`pipeline_execution_audit`).
 - 🌐 **Orquestração de Múltiplos Jobs em DAG**: Defina grafos de tarefas com dependências (`depends_on`) no `workflow.yaml`, com validação topológica, detecção de ciclos e geração de **Master DAG Runner** para o Databricks Community Edition ou payload nativo da Jobs API v2.1.
 - 🗄️ **Suporte Nativo a Jobs SQL**: Execute scripts `.sql` localmente em Delta Lake ou faça deploy de consultas diretamente no Databricks Workspace.
 - 💻 **Catálogo de Máquinas & Compute**: Escolha nós para **AWS** (`i3.xlarge`, `m5d.large`), **Azure** (`Standard_DS3_v2`, `D4s_v5`), **GCP** (`n1-standard-4`) e **Community Edition** (`SingleNode` gratuito, 0 workers).
@@ -34,11 +37,17 @@ O **`databricks-forge-cli`** é a ferramenta definitiva de engenharia de dados m
 
 ## 🏛️ Desenho de Solução & Arquitetura
 
-O blueprint técnico abaixo detalha a esteira completa e os fluxos de trabalho do Databricks Forge:
+O projeto conta com uma arquitetura modelada em 3 perspectivas integradas:
 
 ![Databricks Forge Architecture](docs/architecture.svg)
 
-> 💡 **Arquivo Editável**: O diagrama XML correspondente está disponível em [`docs/architecture.drawio`](docs/architecture.drawio). Abra-o no [diagrams.net](https://app.diagrams.net/).
+### 📑 Estrutura Multi-Aba no Draw.io ([`docs/architecture.drawio`](docs/architecture.drawio))
+
+O arquivo [`docs/architecture.drawio`](docs/architecture.drawio) contém **3 abas dedicadas**, prontas para visualização no [diagrams.net (Draw.io)](https://app.diagrams.net/):
+
+1. **Aba 1: Experiência do Usuário (Funcional)**: Mapeamento completo da jornada do desenvolvedor, desde a inicialização com banner 3D, ciclo local sem custos no Docker, gestão de secrets até a execução da pipeline no Databricks CE.
+2. **Aba 2: Visão de Negócio (Business & ROI)**: Demonstração de FinOps (redução de 80%+ do compute bill de desenvolvimento), mitigação de riscos de segurança, aceleração de time-to-market e governança da cadeia de valor Medallion.
+3. **Aba 3: Visão Técnica & Cloud Architecture**: Visão detalhada de engenharia com Control Plane (REST APIs), Compute Plane (AWS `i3.xlarge`, Azure `DS3_v2`, GCP `n1-standard`, CE `SingleNode`), persistência ACID Delta Lake e CI/CD.
 
 ---
 
@@ -109,6 +118,44 @@ forge build
 forge deploy --target-path "/Shared/forge_deployments/retail_lakehouse"
 ```
 
+### 6. Executar Ingestão Streaming com Delta Lake & Watermarking
+O projeto scaffolded vem com template completo de **Structured Streaming**:
+```bash
+# Executa localmente em modo micro-batch (AvailableNow)
+make stream-run
+```
+No Databricks CE, execute o notebook `notebooks/run_streaming_notebook.py` com widgets interativos:
+- **`trigger_mode`**: `available_now` (ótimo para agendamentos econômicos), `continuous`, ou `processing_time`.
+- **`watermark_delay`**: atraso tolerado para dados tardios (ex: `10 minutes`).
+- **`checkpoint_dir`**: diretório de checkpoint para garantia *exactly-once*.
+
+### 7. Otimização de Performance Delta & Spark AQE
+```bash
+# Inspeciona perfis de configuração recomendados (AQE, Auto-Compact, Coalescing)
+forge tune config --profile balanced
+
+# Gera o plano de compactação (OPTIMIZE) com Z-ORDER em colunas de alta cardinalidade
+forge tune optimize transactions_silver --zorder user_id,date
+
+# Gera rotina de expurgo seguro de snapshots históricos (VACUUM)
+forge tune vacuum transactions_silver --retention 168
+```
+
+### 8. Logging Estruturado & Auditoria de Pipelines
+O módulo `logging.py` do projeto scaffolded fornece telemetria pronta para produção:
+```python
+from retail_lakehouse.logging import setup_pipeline_logging, pipeline_audit_step
+
+# Configura logs em formato JSON padronizado ISO 8601
+logger = setup_pipeline_logging(level="INFO", json_format=True)
+
+# Decorator mede latência automaticamente, conta linhas de DataFrames e registra falhas
+@pipeline_audit_step(step_name="transform_silver_customers")
+def process_customers(df):
+    return df.filter("active = true")
+```
+As métricas também podem ser persistidas na tabela Delta `pipeline_execution_audit`.
+
 ---
 
 ## 🧰 Referência Completa de Comandos
@@ -116,11 +163,18 @@ forge deploy --target-path "/Shared/forge_deployments/retail_lakehouse"
 ### Comandos Centrais
 | Comando | Descrição |
 |---|---|
-| `forge init <name>` | Gera novo projeto Lakehouse com DAG, Docker, Chispa e CI/CD |
+| `forge init <name>` | Gera novo projeto Lakehouse com DAG, Docker, Chispa, Streaming e CI/CD |
 | `forge build` | Compila o pacote `.whl` do projeto |
 | `forge deploy` | Envia Wheel, SQLs e Master DAG Runner para o Databricks Workspace |
 | `forge check` | Diagnóstico de pré-requisitos (Python, Java, Docker, Databricks API) |
 | `forge run-notebook` | Gera URL direta e guia de execução para o notebook no Databricks CE |
+
+### Tuning & Otimização (`forge tune`)
+| Comando | Descrição |
+|---|---|
+| `forge tune optimize <table>` | Gera e executa plano de compactação (`OPTIMIZE`) com `ZORDER BY` |
+| `forge tune vacuum <table>` | Gera e executa plano de retenção e limpeza de arquivos obsoletos (`VACUUM`) |
+| `forge tune config` | Exibe parâmetros ótimos de Spark AQE, Auto-Compaction e Shuffling |
 
 ### DAG & Workflows (`forge dag`)
 | Comando | Descrição |

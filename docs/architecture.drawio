@@ -1,103 +1,230 @@
-<mxfile host="Electron" modified="2026-09-07T23:55:00.000Z" agent="5.0" version="21.6.8" type="device">
-  <diagram id="databricks-forge-arch-v2" name="Databricks Forge v0.2.0 Architecture">
+<mxfile host="Electron" modified="2026-09-07T23:59:00.000Z" agent="5.0" version="21.6.8" type="device">
+  
+  <!-- ========================================================================================== -->
+  <!-- ABA 1: EXPERIÊNCIA DO USUÁRIO (FUNCIONAL)                                                 -->
+  <!-- ========================================================================================== -->
+  <diagram id="tab-functional" name="1. Experiência do Usuário (Funcional)">
     <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         
-        <!-- TITLE BANNER -->
-        <mxCell id="title" value="Databricks Forge Architecture: Multi-Job DAG, Secrets &amp; Hybrid Compute" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1;fontColor=#FF3621;" vertex="1" parent="1">
-          <mxGeometry x="380" y="30" width="1040" height="40" as="geometry" />
+        <!-- HEADER -->
+        <mxCell id="f_header" value="Jornada do Engenheiro de Dados — Experiência do Usuário no Databricks Forge" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1;fontColor=#FF3621;" vertex="1" parent="1">
+          <mxGeometry x="350" y="30" width="1100" height="40" as="geometry" />
         </mxCell>
-        
-        <!-- ZONE 1: LOCAL DEVELOPER WORKSPACE -->
-        <mxCell id="zone_local" value="1. Local Developer Workstation" style="swimlane;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#F8FAFC;strokeColor=#1E40AF;startSize=30;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="60" y="100" width="480" height="850" as="geometry" />
-        </mxCell>
-        
-        <mxCell id="cli_node" value="Databricks Forge CLI&#xa;(forge init / build / deploy / dag / sql / secret)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E40AF;fontColor=#FFFFFF;fontStyle=1;fontSize=13;strokeColor=#1E3A8A;" vertex="1" parent="zone_local">
-          <mxGeometry x="40" y="50" width="400" height="50" as="geometry" />
+        <mxCell id="f_sub" value="Fluxo passo a passo: Scaffolding interativo ➔ Desenvolvimento Docker ➔ Gestão de Secrets ➔ Orquestração de DAG ➔ Deploy no Databricks CE" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontColor=#64748B;" vertex="1" parent="1">
+          <mxGeometry x="350" y="70" width="1100" height="25" as="geometry" />
         </mxCell>
 
-        <mxCell id="sub_secrets" value="Secrets &amp; Environment Variable Engine&#xa;• Local .env parsing (databricks_forge.core.secrets)&#xa;• forge secret sync-env → Databricks Secret Scope&#xa;• Hybrid get_secret() abstraction (dbutils vs os.getenv)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECFDF5;strokeColor=#10B981;align=left;spacingLeft=15;fontSize=11;" vertex="1" parent="zone_local">
-          <mxGeometry x="40" y="120" width="400" height="85" as="geometry" />
+        <!-- STEP 1: INITIALIZATION -->
+        <mxCell id="step1" value="Etapa 1: Scaffolding do Projeto&#xa;&#xa;Comando:&#xa;forge init customer-lakehouse&#xa;--cloud aws --node-type i3.xlarge --workers 2&#xa;&#xa;Resultado:&#xa;• Banner 3D estilizado no terminal&#xa;• Estrutura completa renderizada&#xa;• Docker, Chispa, DAG e Secrets pré-configurados" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;align=left;spacingLeft=15;fontSize=12;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="80" y="130" width="340" height="170" as="geometry" />
         </mxCell>
 
-        <mxCell id="sub_compute" value="Compute &amp; Machine Catalog (core/compute.py)&#xa;• AWS: i3.xlarge (NVMe), m5d.large, c5.xlarge&#xa;• Azure: Standard_DS3_v2, Standard_D4s_v5&#xa;• GCP: n1-standard-4 · CE: SingleNode (Free Tier, 0 workers)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#F59E0B;align=left;spacingLeft=15;fontSize=11;" vertex="1" parent="zone_local">
-          <mxGeometry x="40" y="225" width="400" height="85" as="geometry" />
-        </mxCell>
-        
-        <mxCell id="sub_code" value="Scaffolded Lakehouse Project&#xa;• src/{{project_slug}}/: session.py, catalog.py, secrets.py&#xa;• sql/: 01_clean_transactions.sql, 02_gold_metrics.sql&#xa;• workflow.yaml: Multi-Job DAG orchestration definition&#xa;• notebooks/: master_dag_runner.py, run_pipeline_notebook.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#93C5FD;align=left;spacingLeft=15;fontSize=11;" vertex="1" parent="zone_local">
-          <mxGeometry x="40" y="330" width="400" height="110" as="geometry" />
-        </mxCell>
-        
-        <mxCell id="sub_docker" value="Docker Development Environment&#xa;• Python 3.11 + OpenJDK 11&#xa;• PySpark 3.5.0 + Delta-Spark 3.0.0&#xa;• Volume: local_data_lake (/data_lake)&#xa;• Zero Cloud Cost Testing" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#F59E0B;align=left;spacingLeft=15;fontSize=11;" vertex="1" parent="zone_local">
-          <mxGeometry x="40" y="460" width="400" height="95" as="geometry" />
-        </mxCell>
-        
-        <mxCell id="sub_tests" value="Robust Test Suites&#xa;• tests/unit: Chispa (assert_df_equality)&#xa;• tests/integration: CatalogManager Disk I/O&#xa;• tests/performance: pytest-benchmark" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECFDF5;strokeColor=#10B981;align=left;spacingLeft=15;fontSize=11;" vertex="1" parent="zone_local">
-          <mxGeometry x="40" y="575" width="400" height="85" as="geometry" />
-        </mxCell>
-        
-        <mxCell id="sub_connect" value="Databricks Connect v2 Mode&#xa;• EXECUTION_MODE=remote&#xa;• Direct remote DataFrame execution" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#8B5CF6;align=left;spacingLeft=15;fontSize=11;" vertex="1" parent="zone_local">
-          <mxGeometry x="40" y="680" width="400" height="65" as="geometry" />
-        </mxCell>
-        
-        <mxCell id="sub_dist" value="Compiled Wheel Artifact (.whl)&#xa;Generated in dist/ by forge build" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#FFFBEB;strokeColor=#D97706;size=14;fontStyle=1;" vertex="1" parent="zone_local">
-          <mxGeometry x="120" y="765" width="240" height="60" as="geometry" />
+        <!-- STEP 2: LOCAL DEV -->
+        <mxCell id="step2" value="Etapa 2: Dev Local sem Custo de Nuvem&#xa;&#xa;Comando:&#xa;make docker-test (ou make unit-test)&#xa;&#xa;Funcionalidades:&#xa;• Container com OpenJDK 11 e PySpark 3.5&#xa;• Testes unitários Chispa (assert_df_equality)&#xa;• Gravação ACID em volume local (Delta Lake)&#xa;• Sem consumo de DBU ou custo de nuvem" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#F59E0B;align=left;spacingLeft=15;fontSize=12;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="480" y="130" width="360" height="170" as="geometry" />
         </mxCell>
 
-        <!-- ZONE 2: GITHUB ACTIONS & MULTI-JOB DAG -->
-        <mxCell id="zone_cicd" value="2. Multi-Job DAG &amp; GitHub Actions CI/CD" style="swimlane;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#F8FAFC;strokeColor=#10B981;startSize=30;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="590" y="100" width="480" height="850" as="geometry" />
-        </mxCell>
-        
-        <mxCell id="dag_node" value="Multi-Job Directed Acyclic Graph (DAG)&#xa;Task 1: ingest_bronze_wheel (Python Wheel)&#xa;    ↓ depends_on&#xa;Task 2: clean_silver_sql (SQL Transformation)&#xa;    ↓ depends_on&#xa;Task 3: aggregate_gold_sql (SQL KPIs Analytics)&#xa;    ↓ depends_on&#xa;Task 4: analytics_notebook (Interactive Reporting)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECFDF5;strokeColor=#059669;align=left;spacingLeft=15;fontSize=11;fontStyle=1;" vertex="1" parent="zone_cicd">
-          <mxGeometry x="40" y="50" width="400" height="150" as="geometry" />
+        <!-- STEP 3: SECRETS SYNC -->
+        <mxCell id="step3" value="Etapa 3: Gestão Segura de Secrets&#xa;&#xa;Comando:&#xa;forge secret sync-env --scope-name &quot;retail_scope&quot;&#xa;&#xa;Benefícios:&#xa;• Migra .env local para Databricks Secret Scope&#xa;• Código unificado com get_secret(scope, key)&#xa;• Zero senhas ou chaves expostas no Git" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECFDF5;strokeColor=#10B981;align=left;spacingLeft=15;fontSize=12;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="900" y="130" width="360" height="170" as="geometry" />
         </mxCell>
 
-        <mxCell id="ci_job" value="CI Pipeline (.github/workflows/ci.yml)&#xa;• Linting (Ruff check &amp; format)&#xa;• OpenJDK 11 Setup + Matrix (3.10, 3.11, 3.12)&#xa;• Chispa Unit Tests + Performance Benchmarks&#xa;• Wheel Build &amp; Artifact Storage" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;align=left;spacingLeft=15;fontSize=12;" vertex="1" parent="zone_cicd">
-          <mxGeometry x="40" y="230" width="400" height="130" as="geometry" />
-        </mxCell>
-        
-        <mxCell id="git_merge" value="Main Branch Merge / Release Trigger" style="rhombus;whiteSpace=wrap;html=1;fillColor=#F3F4F6;strokeColor=#6B7280;fontStyle=1;fontSize=11;" vertex="1" parent="zone_cicd">
-          <mxGeometry x="135" y="400" width="210" height="70" as="geometry" />
-        </mxCell>
-        
-        <mxCell id="cd_job" value="CD Pipeline (.github/workflows/cd.yml)&#xa;• Databricks Secrets: DATABRICKS_HOST, TOKEN&#xa;• Automated forge deploy:&#xa;  - Workspace Import API v2.0&#xa;  - Upload Wheel (.whl)&#xa;  - Upload SQL scripts (sql/*.sql)&#xa;  - Upload Master DAG Runner &amp; Notebooks" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;align=left;spacingLeft=15;fontSize=12;" vertex="1" parent="zone_cicd">
-          <mxGeometry x="40" y="510" width="400" height="170" as="geometry" />
+        <!-- STEP 4: DAG ORCHESTRATION -->
+        <mxCell id="step4" value="Etapa 4: Orquestração de DAG Multi-Job&#xa;&#xa;Comandos:&#xa;forge dag validate (Kahn's Topological Sort)&#xa;forge dag run --mode local&#xa;forge sql run sql/01_clean_transactions.sql&#xa;&#xa;Tarefas Encadeadas:&#xa;1. Ingestão Bronze (Python Wheel)&#xa;2. Limpeza Silver (SQL Job)&#xa;3. Agregação Gold (SQL KPIs)&#xa;4. Relatório Analítico (Notebook)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAF5FF;strokeColor=#A855F7;align=left;spacingLeft=15;fontSize=12;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="1320" y="130" width="360" height="190" as="geometry" />
         </mxCell>
 
-        <!-- ZONE 3: DATABRICKS RUNTIME -->
-        <mxCell id="zone_databricks" value="3. Databricks Community &amp; Enterprise Runtime" style="swimlane;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#F8FAFC;strokeColor=#FF3621;startSize=30;rounded=1;" vertex="1" parent="1">
-          <mxGeometry x="1120" y="100" width="500" height="850" as="geometry" />
-        </mxCell>
-        
-        <mxCell id="dbx_api" value="Databricks Workspace Import API&#xa;POST /api/2.0/workspace/import (Base64)&#xa;Deploys Wheels, SQL scripts, &amp; Notebooks" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEE2E2;strokeColor=#DC2626;fontStyle=1;fontSize=12;" vertex="1" parent="zone_databricks">
-          <mxGeometry x="50" y="50" width="400" height="60" as="geometry" />
+        <!-- STEP 5: CI/CD & BUILD -->
+        <mxCell id="step5" value="Etapa 5: Build &amp; Esteira de CI/CD&#xa;&#xa;Comandos:&#xa;forge build (Compila dist/*.whl)&#xa;git push origin main&#xa;&#xa;Automação GitHub Actions:&#xa;• Linting estrito com Ruff&#xa;• Matriz de testes Python (3.10, 3.11, 3.12)&#xa;• Benchmarks de performance de dados&#xa;• Build e empacotamento do binário" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F1F5F9;strokeColor=#64748B;align=left;spacingLeft=15;fontSize=12;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="480" y="380" width="360" height="180" as="geometry" />
         </mxCell>
 
-        <mxCell id="dbx_secrets" value="Databricks Secret Scopes (/api/2.0/secrets/*)&#xa;• Scope: forge_scope (managed via forge secret)&#xa;• dbutils.secrets.get() / universal get_secret()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECFDF5;strokeColor=#10B981;fontStyle=1;fontSize=11;align=left;spacingLeft=15;" vertex="1" parent="zone_databricks">
-          <mxGeometry x="50" y="130" width="400" height="65" as="geometry" />
-        </mxCell>
-        
-        <mxCell id="dbx_workspace" value="Databricks Workspace (/Shared/forge_deployments/)&#xa;├── {{project_slug}}-0.1.0-py3-none-any.whl&#xa;├── master_dag_runner (Multi-job Orchestrator)&#xa;├── run_pipeline_notebook (Interactive Widgets)&#xa;└── sql/ (01_clean_transactions, 02_gold_metrics)" style="shape=folder;fontStyle=1;spacingTop=10;tabWidth=220;tabHeight=30;tabPosition=left;html=1;whiteSpace=wrap;fillColor=#FEF3C7;strokeColor=#D97706;align=left;spacingLeft=20;fontSize=11;" vertex="1" parent="zone_databricks">
-          <mxGeometry x="50" y="215" width="400" height="125" as="geometry" />
-        </mxCell>
-        
-        <mxCell id="dbx_master_runner" value="Master DAG Runner (master_dag_runner)&#xa;• Topologically executes full multi-task DAG in CE&#xa;• Coordinates Python, SQL, and Notebook tasks&#xa;• Complete orchestration with 0 cloud license cost" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF1F2;strokeColor=#E11D48;align=left;spacingLeft=15;fontSize=12;" vertex="1" parent="zone_databricks">
-          <mxGeometry x="50" y="370" width="400" height="90" as="geometry" />
-        </mxCell>
-        
-        <mxCell id="dbx_cluster" value="Databricks Compute Cluster (SingleNode / MultiNode)&#xa;Configured via compute.py (AWS, Azure, GCP, CE SingleNode)&#xa;Spark 3.5.x · Delta Lake 3.x · Python 3.11" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E293B;fontColor=#FFFFFF;fontStyle=1;fontSize=12;strokeColor=#0F172A;" vertex="1" parent="zone_databricks">
-          <mxGeometry x="50" y="490" width="400" height="65" as="geometry" />
+        <!-- STEP 6: DEPLOY TO DATABRICKS CE -->
+        <mxCell id="step6" value="Etapa 6: Deploy &amp; Execução no Databricks CE&#xa;&#xa;Comando:&#xa;forge deploy --target-path &quot;/Shared/lakehouse&quot;&#xa;forge run-notebook --target-path &quot;/Shared/lakehouse&quot;&#xa;&#xa;Ambiente Databricks:&#xa;• Publicação de Wheel e scripts SQL via Workspace API&#xa;• Master DAG Runner executando o grafo completo&#xa;• Widgets interativos (row_count, log_level)&#xa;• Visualização nativa com display() e assertions" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF1F2;strokeColor=#E11D48;align=left;spacingLeft=15;fontSize=12;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="900" y="380" width="380" height="180" as="geometry" />
         </mxCell>
 
-        <mxCell id="dbx_catalog" value="Databricks Metastore / Delta Lake Tables&#xa;default.{{project_slug}}_bronze / silver_sql / gold_sql" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#DBEAFE;strokeColor=#3B82F6;fontStyle=1;" vertex="1" parent="zone_databricks">
-          <mxGeometry x="110" y="585" width="280" height="65" as="geometry" />
+        <!-- ARROWS -->
+        <mxCell id="fa1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#3B82F6;" edge="1" parent="1" source="step1" target="step2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fa2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#F59E0B;" edge="1" parent="1" source="step2" target="step3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fa3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#10B981;" edge="1" parent="1" source="step3" target="step4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fa4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#A855F7;" edge="1" parent="1" source="step4" target="step5">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1500" y="350" />
+              <mxPoint x="660" y="350" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fa5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#64748B;" edge="1" parent="1" source="step5" target="step6">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
 
       </root>
     </mxGraphModel>
   </diagram>
+
+  <!-- ========================================================================================== -->
+  <!-- ABA 2: VISÃO DE NEGÓCIO (BUSINESS & ROI)                                                  -->
+  <!-- ========================================================================================== -->
+  <diagram id="tab-business" name="2. Visão de Negócio (Business &amp; ROI)">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- HEADER -->
+        <mxCell id="b_header" value="Arquitetura de Negócio — Proposta de Valor, ROI &amp; Governança" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1;fontColor=#059669;" vertex="1" parent="1">
+          <mxGeometry x="350" y="30" width="1100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="b_sub" value="Como o Databricks Forge CLI reduz custos, mitiga riscos, acelera entregas e democratiza o Lakehouse" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontColor=#64748B;" vertex="1" parent="1">
+          <mxGeometry x="350" y="70" width="1100" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- VALUE PILLAR 1: COST OPTIMIZATION -->
+        <mxCell id="b_pillar1" value="Redução Drástica de Custos (FinOps)&#xa;&#xa;• Custo Zero de DBU em Desenvolvimento:&#xa;  Testes unitários e iterações de código rodam&#xa;  100% em Docker local ou Databricks CE.&#xa;• Economia Estimada: 80% a 90% do compute bill&#xa;  de ambientes de desenvolvimento em nuvem.&#xa;• Seleção Precisa de Instâncias:&#xa;  Suporte a Single-Node para tarefas leves e&#xa;  instâncias otimizadas (i3.xlarge) na produção." style="swimlane;whiteSpace=wrap;html=1;fontSize=13;fontStyle=1;fillColor=#ECFDF5;strokeColor=#10B981;startSize=30;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="130" width="370" height="260" as="geometry" />
+        </mxCell>
+
+        <!-- VALUE PILLAR 2: TIME TO MARKET -->
+        <mxCell id="b_pillar2" value="Aceleração de Time-to-Market&#xa;&#xa;• Scaffolding Padronizado Instantâneo:&#xa;  Novos pipelines são iniciados em minutos,&#xa;  eliminando semanas de setup repetitivo.&#xa;• Arquitetura Medallion Pronta:&#xa;  Templates homologados de Bronze, Silver e Gold&#xa;  com contratos de schema e regras de auditoria.&#xa;• Esteira CI/CD Automatizada:&#xa;  Build de Wheel e deploy no Databricks em&#xa;  cada merge aprovado." style="swimlane;whiteSpace=wrap;html=1;fontSize=13;fontStyle=1;fillColor=#EFF6FF;strokeColor=#3B82F6;startSize=30;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="490" y="130" width="370" height="260" as="geometry" />
+        </mxCell>
+
+        <!-- VALUE PILLAR 3: DEMOCRATIZATION -->
+        <mxCell id="b_pillar3" value="Democratização do Databricks CE&#xa;&#xa;• Sem Barreira de Licenciamento:&#xa;  Engenheiros podem aprender, prototipar e validar&#xa;  soluções inteiras no Community Edition gratuito.&#xa;• Superação da Limitação da Jobs API:&#xa;  O Master DAG Runner executa fluxos complexos&#xa;  com múltiplos jobs sem precisar de licença paga.&#xa;• Testes com Databricks Connect v2:&#xa;  Experiência de computação em nuvem real." style="swimlane;whiteSpace=wrap;html=1;fontSize=13;fontStyle=1;fillColor=#FAF5FF;strokeColor=#8B5CF6;startSize=30;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="900" y="130" width="370" height="260" as="geometry" />
+        </mxCell>
+
+        <!-- VALUE PILLAR 4: SECURITY & COMPLIANCE -->
+        <mxCell id="b_pillar4" value="Segurança, Compliance &amp; Qualidade&#xa;&#xa;• Gestão Centralizada de Secrets:&#xa;  Zero senhas ou tokens gravados em notebooks;&#xa;  sincronização com Secret Scopes encriptados.&#xa;• Qualidade Assegurada com Chispa:&#xa;  Validação estrita de dados e esquemas antes&#xa;  de qualquer deploy em produção.&#xa;• Rastreabilidade &amp; Versionamento:&#xa;  Controle de versão total com Git e Wheels." style="swimlane;whiteSpace=wrap;html=1;fontSize=13;fontStyle=1;fillColor=#FFF1F2;strokeColor=#E11D48;startSize=30;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="1310" y="130" width="370" height="260" as="geometry" />
+        </mxCell>
+
+        <!-- MEDALLION VALUE CHAIN -->
+        <mxCell id="b_chain" value="Cadeia de Valor dos Dados (Medallion Value Chain)&#xa;&#xa;[Bronze: Ingestão Bruta] ➔ [Silver: Higienização &amp; Deduplicação] ➔ [Gold: Agregações &amp; KPIs Analíticos]&#xa;• Preservação de auditoria técnica (_ingested_at, _computed_at)&#xa;• Tabelas Delta Lake com garantias ACID e Time-Travel&#xa;• Prontidão analítica para BI, Dashboards e Modelos de Machine Learning" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#475569;align=center;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="440" width="1600" height="120" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ========================================================================================== -->
+  <!-- ABA 3: VISÃO TÉCNICA & CLOUD ARCHITECTURE                                                 -->
+  <!-- ========================================================================================== -->
+  <diagram id="tab-technical" name="3. Visão Técnica &amp; Cloud Architecture">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- HEADER -->
+        <mxCell id="t_header" value="Arquitetura Técnica de Nuvem — Control Plane, Compute Plane &amp; Databricks Lakehouse" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1;fontColor=#1E40AF;" vertex="1" parent="1">
+          <mxGeometry x="350" y="30" width="1100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="t_sub" value="Visão técnica com planos de controle, computação híbrida (AWS, Azure, GCP, CE), persistência Delta Lake e esteira CI/CD" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontColor=#64748B;" vertex="1" parent="1">
+          <mxGeometry x="350" y="70" width="1100" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- ZONE 1: LOCAL RUNTIME -->
+        <mxCell id="t_local" value="Ambiente Local &amp; Docker Runtime" style="swimlane;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#F8FAFC;strokeColor=#1E40AF;startSize=30;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="120" width="460" height="780" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="t_cli" value="databricks-forge-cli (Typer / Rich)&#xa;• forge init / build / deploy / dag / sql / secret" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E40AF;fontColor=#FFFFFF;fontStyle=1;fontSize=12;" vertex="1" parent="t_local">
+          <mxGeometry x="30" y="50" width="400" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="t_secrets_mod" value="Módulo de Secrets (core/secrets.py)&#xa;• Parser de .env local&#xa;• Sincronizador Databricks Secrets API (/api/2.0/secrets/*)&#xa;• get_secret() com resolução híbrida" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECFDF5;strokeColor=#10B981;align=left;spacingLeft=15;fontSize=11;" vertex="1" parent="t_local">
+          <mxGeometry x="30" y="120" width="400" height="75" as="geometry" />
+        </mxCell>
+
+        <mxCell id="t_dag_mod" value="Orquestrador DAG (core/workflow.py)&#xa;• Algoritmo de Kahn (Ordenação Topológica)&#xa;• Detecção de ciclos (DAGCycleError)&#xa;• Compilador Jobs API v2.1 &amp; Master DAG Runner" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAF5FF;strokeColor=#A855F7;align=left;spacingLeft=15;fontSize=11;" vertex="1" parent="t_local">
+          <mxGeometry x="30" y="215" width="400" height="85" as="geometry" />
+        </mxCell>
+
+        <mxCell id="t_docker" value="Container Docker Lakehouse&#xa;• Debian Bullseye + OpenJDK 11&#xa;• PySpark 3.5.0 + Delta-Spark 3.0.0&#xa;• Volume: local_data_lake (Persistência Delta local)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#F59E0B;align=left;spacingLeft=15;fontSize=11;" vertex="1" parent="t_local">
+          <mxGeometry x="30" y="320" width="400" height="85" as="geometry" />
+        </mxCell>
+
+        <mxCell id="t_tests" value="Suíte de Testes (Chispa + Pytest)&#xa;• assert_df_equality: comparação exata de esquemas e dados&#xa;• pytest-benchmark: medição de throughput&#xa;• Testes de integração de catálogo e partição" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;align=left;spacingLeft=15;fontSize=11;" vertex="1" parent="t_local">
+          <mxGeometry x="30" y="425" width="400" height="85" as="geometry" />
+        </mxCell>
+
+        <mxCell id="t_connect" value="Databricks Connect v2 (gRPC)&#xa;• EXECUTION_MODE=remote&#xa;• Sessão remota contra cluster Databricks ativo" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#8B5CF6;align=left;spacingLeft=15;fontSize=11;" vertex="1" parent="t_local">
+          <mxGeometry x="30" y="530" width="400" height="65" as="geometry" />
+        </mxCell>
+
+        <mxCell id="t_wheel" value="Pacote Wheel (.whl)&#xa;dist/{{project_slug}}-0.2.0-py3-none-any.whl" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#FFFBEB;strokeColor=#D97706;size=14;fontStyle=1;" vertex="1" parent="t_local">
+          <mxGeometry x="110" y="620" width="240" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ZONE 2: CI/CD & ORCHESTRATION -->
+        <mxCell id="t_cicd" value="GitHub Actions CI/CD &amp; Automação" style="swimlane;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#F8FAFC;strokeColor=#10B981;startSize=30;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="580" y="120" width="480" height="780" as="geometry" />
+        </mxCell>
+
+        <mxCell id="t_ci_pipeline" value="CI Pipeline (.github/workflows/ci.yml)&#xa;1. Ruff: Linting e formatação estrita de código&#xa;2. OpenJDK 11 + Python Matrix (3.10, 3.11, 3.12)&#xa;3. Execução Chispa Unit Tests &amp; Benchmarks&#xa;4. Build e empacotamento do Wheel (.whl)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;align=left;spacingLeft=15;fontSize=11;" vertex="1" parent="t_cicd">
+          <mxGeometry x="40" y="50" width="400" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="t_dag_spec" value="DAG Workflow Spec (workflow.yaml)&#xa;• Tarefa 1: ingest_bronze (Wheel Python)&#xa;    ↓ depends_on&#xa;• Tarefa 2: clean_silver_sql (SQL Script)&#xa;    ↓ depends_on&#xa;• Tarefa 3: aggregate_gold_sql (SQL KPIs)&#xa;    ↓ depends_on&#xa;• Tarefa 4: analytics_notebook (Interactive Reporting)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAF5FF;strokeColor=#8B5CF6;align=left;spacingLeft=15;fontSize=11;fontStyle=1;" vertex="1" parent="t_cicd">
+          <mxGeometry x="40" y="180" width="400" height="150" as="geometry" />
+        </mxCell>
+
+        <mxCell id="t_cd_pipeline" value="CD Pipeline (.github/workflows/cd.yml)&#xa;• Injeção de Secrets do GitHub:&#xa;  - DATABRICKS_HOST&#xa;  - DATABRICKS_TOKEN&#xa;• Execução automatizada de forge deploy:&#xa;  - Upload do binário Wheel&#xa;  - Upload de scripts SQL (sql/*.sql)&#xa;  - Sincronização do Master DAG Runner" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECFDF5;strokeColor=#059669;align=left;spacingLeft=15;fontSize=11;" vertex="1" parent="t_cicd">
+          <mxGeometry x="40" y="350" width="400" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- ZONE 3: DATABRICKS CLOUD ARCHITECTURE -->
+        <mxCell id="t_cloud" value="Databricks Cloud Architecture (Control &amp; Compute Planes)" style="swimlane;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#F8FAFC;strokeColor=#FF3621;startSize=30;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="120" width="540" height="780" as="geometry" />
+        </mxCell>
+
+        <mxCell id="t_control_plane" value="Databricks Control Plane (REST APIs)&#xa;• Workspace Import API (/api/2.0/workspace/import) [Base64]&#xa;• Secrets REST API (/api/2.0/secrets/*) [Secret Scopes]&#xa;• Jobs API v2.1 (/api/2.1/jobs/create &amp; submit)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEE2E2;strokeColor=#DC2626;fontStyle=1;fontSize=11;align=left;spacingLeft=15;" vertex="1" parent="t_cloud">
+          <mxGeometry x="40" y="50" width="460" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="t_workspace_dir" value="Databricks Workspace (/Shared/forge_deployments/...)&#xa;├── {{project_slug}}-0.2.0-py3-none-any.whl&#xa;├── master_dag_runner (Orquestrador do DAG no CE)&#xa;├── run_pipeline_notebook (Notebook com Widgets)&#xa;└── sql/ (01_clean_transactions.sql, 02_gold_metrics.sql)" style="shape=folder;fontStyle=1;spacingTop=10;tabWidth=220;tabHeight=30;tabPosition=left;html=1;whiteSpace=wrap;fillColor=#FEF3C7;strokeColor=#D97706;align=left;spacingLeft=20;fontSize=11;" vertex="1" parent="t_cloud">
+          <mxGeometry x="40" y="150" width="460" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="t_compute_plane" value="Databricks Compute Plane (Clusters Homologados)&#xa;• AWS: i3.xlarge (Local NVMe SSD), m5d.large&#xa;• Azure: Standard_DS3_v2, Standard_D4s_v5&#xa;• GCP: n1-standard-4&#xa;• Community Edition (CE): SingleNode (Free Tier, 0 workers)&#xa;• Runtime: DBR 14.3 LTS (Apache Spark 3.5.x, Delta Lake 3.x)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E293B;fontColor=#FFFFFF;fontStyle=1;fontSize=11;align=left;spacingLeft=15;" vertex="1" parent="t_cloud">
+          <mxGeometry x="40" y="290" width="460" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="t_storage_plane" value="Camada de Dados ACID (Delta Lake &amp; Metastore)&#xa;• default.{{project_slug}}_bronze (Ingestão Bruta)&#xa;• default.{{project_slug}}_silver_sql (Dados Higienizados)&#xa;• default.{{project_slug}}_gold_sql (KPIs Analíticos Agregados)&#xa;• Armazenamento em Parquet + Delta Transaction Log" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#DBEAFE;strokeColor=#3B82F6;fontStyle=1;align=left;spacingLeft=15;fontSize=11;" vertex="1" parent="t_cloud">
+          <mxGeometry x="80" y="420" width="380" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- CONNECTING ARROWS IN TECH DIAGRAM -->
+        <mxCell id="t_edge1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#3B82F6;" edge="1" parent="1" source="t_cli" target="t_ci_pipeline">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t_edge2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#10B981;" edge="1" parent="1" source="t_ci_pipeline" target="t_cd_pipeline">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t_edge3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#FF3621;" edge="1" parent="1" source="t_cd_pipeline" target="t_control_plane">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1090" y="550" />
+              <mxPoint x="1090" y="210" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
 </mxfile>
