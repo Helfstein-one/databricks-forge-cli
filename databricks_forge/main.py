@@ -29,6 +29,14 @@ from databricks_forge.core.sql import (
     deploy_sql_to_workspace,
     execute_sql_locally,
 )
+from databricks_forge.core.connectors import (
+    DATABASE_CATALOG,
+    build_export_plan,
+    build_ingest_plan,
+    build_jdbc_url,
+    check_db_connectivity,
+    get_connector_info,
+)
 from databricks_forge.core.formats import (
     SUPPORTED_FORMATS,
     build_convert_plan,
@@ -78,6 +86,7 @@ secret_app = typer.Typer(name="secret", help="🔒 Databricks Secrets and enviro
 tune_app = typer.Typer(name="tune", help="⚡ Spark & Delta Lake performance tuning.")
 data_app = typer.Typer(name="data", help="📁 Multi-format dataset inspection and conversion (Parquet, ORC, Avro, CSV, JSON, Delta).")
 iceberg_app = typer.Typer(name="iceberg", help="🧊 Apache Iceberg tables and Delta UniForm compatibility.")
+connector_app = typer.Typer(name="connector", help="🔌 Multi-database connectors (PostgreSQL, MySQL, SQL Server, Oracle, Snowflake, Mongo, BigQuery, SQLite).")
 
 app.add_typer(sql_app)
 app.add_typer(dag_app)
@@ -86,6 +95,7 @@ app.add_typer(secret_app)
 app.add_typer(tune_app)
 app.add_typer(data_app)
 app.add_typer(iceberg_app)
+app.add_typer(connector_app)
 
 console = Console()
 
@@ -208,11 +218,12 @@ def init(
         table.add_row("Streaming Engine", f"src/{slug}/pipelines/streaming_pipeline.py, notebooks/run_streaming_notebook.py")
         table.add_row("Multi-Format I/O", f"src/{slug}/formats.py (Parquet, ORC, Avro, CSV, JSON, Delta)")
         table.add_row("Apache Iceberg", f"src/{slug}/iceberg.py, sql/04_iceberg_uniform.sql (Delta UniForm)")
+        table.add_row("DB Connectors", f"src/{slug}/connectors.py, config/database_connectors.yaml (Postgres, MySQL, MSSQL, Snowflake)")
         table.add_row("Performance Tuning", f"src/{slug}/tuning.py (AQE, OPTIMIZE, Z-ORDER, VACUUM)")
         table.add_row("Structured Logging", f"src/{slug}/logging.py (JSON Telemetry, @pipeline_audit_step)")
         table.add_row("SQL Jobs", "sql/01_clean_transactions.sql, sql/02_gold_metrics.sql")
         table.add_row("DAG Orchestration", "workflow.yaml, notebooks/master_dag_runner.py")
-        table.add_row("CE Notebooks", "notebooks/run_pipeline_notebook.py, notebooks/run_multiformat_notebook.py")
+        table.add_row("CE Notebooks", "notebooks/run_pipeline_notebook.py, notebooks/run_multiformat_notebook.py, notebooks/run_database_connectors_notebook.py")
         table.add_row("Docker Dev", "docker/Dockerfile, docker/docker-compose.yml (PySpark 3.5 + Delta 3.0)")
         table.add_row("Test Suite", "tests/unit/ (Chispa), tests/integration/, tests/performance/")
         table.add_row("CI/CD Pipeline", ".github/workflows/ci.yml, .github/workflows/cd.yml")
@@ -222,6 +233,7 @@ def init(
         console.print(f"\n[bold green]✔ Successfully created {len(files)} files in {target_path}[/bold green]")
         console.print("\n[bold yellow]Quick Commands:[/bold yellow]")
         console.print(f"  • [cyan]cd {target_path}[/cyan]")
+        console.print("  • [cyan]forge connector list[/cyan] (Inspect supported databases & JDBC drivers)")
         console.print("  • [cyan]forge iceberg enable-uniform <table_name>[/cyan] (Enable Iceberg metadata)")
         console.print("  • [cyan]forge data convert <src> <dst> --to delta[/cyan]  (Multi-format conversion)")
         console.print("  • [cyan]forge tune config[/cyan] (Inspect Spark AQE & Delta Lake performance presets)")
@@ -955,6 +967,152 @@ def iceberg_snapshots_cmd(
         title="📜 Iceberg Snapshots & Commit History",
         border_style="magenta",
     ))
+
+
+# =========================================================================
+# MULTI-DATABASE CONNECTORS & REVERSE-ETL
+# =========================================================================
+
+@connector_app.command(name="list")
+def connector_list_cmd():
+    """🔌 List supported database engines, default ports, driver classes, and Maven packages."""
+    table = Table(title="🔌 Databricks Forge - Supported Database Connectors", show_header=True)
+    table.add_column("Engine ID", style="cyan")
+    table.add_column("Database Name", style="white")
+    table.add_column("Category", style="magenta")
+    table.add_column("Port", style="yellow")
+    table.add_column("JDBC Driver Class", style="green")
+    table.add_column("Maven Coordinate (for cluster init)", style="dim")
+
+    for engine_id, meta in DATABASE_CATALOG.items():
+        table.add_row(
+            engine_id,
+            meta["name"],
+            meta["category"],
+            str(meta["default_port"]) if meta["default_port"] > 0 else "N/A (Local)",
+            meta["driver_class"],
+            meta["maven_package"],
+        )
+
+    console.print(table)
+
+
+@connector_app.command(name="test-connection")
+def connector_test_connection_cmd(
+    db_type: str = typer.Argument(..., help="Database type: postgresql, mysql, sqlserver, oracle, snowflake, mongodb, sqlite."),
+    host: str = typer.Option("localhost", "--host", "-h", help="Database host or endpoint."),
+    port: Optional[int] = typer.Option(None, "--port", "-p", help="Target port (leave blank for engine default)."),
+    timeout: int = typer.Option(3, "--timeout", "-t", help="Connection timeout in seconds."),
+):
+    """🔍 Test network reachability and TCP socket handshake to external database."""
+    result = check_db_connectivity(db_type=db_type, host=host, port=port, timeout_sec=timeout)
+
+    if result["status"] == "SUCCESS":
+        console.print(Panel(
+            f"[bold green]✔ Connection Successful![/bold green]\n\n"
+            f"[bold cyan]Engine:[/bold cyan]    [white]{result['db_type']}[/white]\n"
+            f"[bold cyan]Host/Port:[/bold cyan] [white]{result.get('host', 'Local')}:{result.get('port', 0)}[/white]\n"
+            f"[bold cyan]Message:[/bold cyan]   [green]{result['message']}[/green]",
+            title="🔌 Database Connectivity Check",
+            border_style="green",
+        ))
+    else:
+        console.print(Panel(
+            f"[bold red]✖ Connection Failed![/bold red]\n\n"
+            f"[bold cyan]Engine:[/bold cyan]    [white]{result['db_type']}[/white]\n"
+            f"[bold cyan]Host/Port:[/bold cyan] [white]{result.get('host', 'Local')}:{result.get('port', 0)}[/white]\n"
+            f"[bold cyan]Error:[/bold cyan]     [red]{result['error']}[/red]\n\n"
+            f"[dim]Tip: Check firewall rules, VPN, security groups, or container networking.[/dim]",
+            title="🔌 Database Connectivity Check",
+            border_style="red",
+        ))
+        raise typer.Exit(code=1)
+
+
+@connector_app.command(name="plan-ingest")
+def connector_plan_ingest_cmd(
+    db_type: str = typer.Argument(..., help="Database type: postgresql, mysql, sqlserver, oracle, snowflake, mongodb, sqlite."),
+    source_table: str = typer.Argument(..., help="External table or SQL subquery to ingest."),
+    target_delta_table: str = typer.Argument(..., help="Destination Delta Lake table name."),
+    host: str = typer.Option("localhost", "--host", "-h", help="Database host or endpoint."),
+    database: str = typer.Option(..., "--database", "-d", help="Database name."),
+    user: str = typer.Option("lakehouse_ingest", "--user", "-u", help="Database username."),
+    partition_column: Optional[str] = typer.Option(None, "--partition-by", "-p", help="Column name for parallel partitioned JDBC read."),
+    num_partitions: int = typer.Option(4, "--num-partitions", "-n", help="Parallel JDBC partition read threads."),
+    fetchsize: int = typer.Option(10000, "--fetchsize", help="JDBC fetch buffer size in rows."),
+    port: Optional[int] = typer.Option(None, "--port", help="Port override."),
+):
+    """📥 Generate high-performance partitioned JDBC ingestion execution plan."""
+    try:
+        plan = build_ingest_plan(
+            db_type=db_type,
+            source_table=source_table,
+            target_delta_table=target_delta_table,
+            host=host,
+            database=database,
+            user=user,
+            partition_column=partition_column,
+            num_partitions=num_partitions,
+            fetchsize=fetchsize,
+            port=port,
+        )
+        console.print(Panel(
+            f"[bold cyan]Source Database:[/bold cyan] [white]{plan['database_name']}[/white] ([green]{db_type}[/green])\n"
+            f"[bold cyan]JDBC URL:[/bold cyan]        [white]{plan['jdbc_url']}[/white]\n"
+            f"[bold cyan]Source Table:[/bold cyan]    [yellow]{plan['source_table']}[/yellow]\n"
+            f"[bold cyan]Target Delta:[/bold cyan]    [bold green]{plan['target_delta_table']}[/bold green]\n"
+            f"[bold cyan]Partitioning:[/bold cyan]    [magenta]{plan['partition_column'] or 'Single-Thread'} ({plan['num_partitions']} threads)[/magenta]\n\n"
+            f"[bold white]PySpark Ingestion Code:[/bold white]\n"
+            f"[yellow]{plan['code_preview']}[/yellow]",
+            title="📥 High-Performance Database Ingestion Plan",
+            border_style="cyan",
+        ))
+        console.print("[dim]Execute in Notebook or DAG via: [cyan]from <project>.connectors import read_database_table[/cyan][/dim]")
+    except Exception as exc:
+        console.print(f"[bold red]Planning error:[/bold red] {exc}")
+        raise typer.Exit(code=1)
+
+
+@connector_app.command(name="plan-export")
+def connector_plan_export_cmd(
+    source_delta_table: str = typer.Argument(..., help="Source Delta Lake table to export from."),
+    db_type: str = typer.Argument(..., help="Destination database type."),
+    target_table: str = typer.Argument(..., help="Destination table in target database."),
+    host: str = typer.Option("localhost", "--host", "-h", help="Database host or endpoint."),
+    database: str = typer.Option(..., "--database", "-d", help="Database name."),
+    user: str = typer.Option("lakehouse_export", "--user", "-u", help="Database username."),
+    mode: str = typer.Option("append", "--mode", "-m", help="Save mode: 'append' or 'overwrite'."),
+    batchsize: int = typer.Option(5000, "--batchsize", help="JDBC commit batch size in rows."),
+    port: Optional[int] = typer.Option(None, "--port", help="Port override."),
+):
+    """📤 Generate Reverse-ETL plan to export Delta Lake Gold data to an external database."""
+    try:
+        plan = build_export_plan(
+            source_delta_table=source_delta_table,
+            db_type=db_type,
+            target_table=target_table,
+            host=host,
+            database=database,
+            user=user,
+            mode=mode,
+            batchsize=batchsize,
+            port=port,
+        )
+        console.print(Panel(
+            f"[bold cyan]Source Delta:[/bold cyan]    [bold green]{plan['source_delta_table']}[/bold green]\n"
+            f"[bold cyan]Target Database:[/bold cyan] [white]{plan['database_name']}[/white] ([green]{db_type}[/green])\n"
+            f"[bold cyan]JDBC URL:[/bold cyan]        [white]{plan['jdbc_url']}[/white]\n"
+            f"[bold cyan]Target Table:[/bold cyan]    [yellow]{plan['target_table']}[/yellow]\n"
+            f"[bold cyan]Mode & Batch:[/bold cyan]   [magenta]{plan['mode']} (batch: {plan['batchsize']} rows)[/magenta]\n\n"
+            f"[bold white]PySpark Reverse-ETL Code:[/bold white]\n"
+            f"[yellow]{plan['code_preview']}[/yellow]",
+            title="📤 Reverse-ETL Export Plan",
+            border_style="magenta",
+        ))
+        console.print("[dim]Execute in Notebook or DAG via: [cyan]from <project>.connectors import write_database_table[/cyan][/dim]")
+    except Exception as exc:
+        console.print(f"[bold red]Export planning error:[/bold red] {exc}")
+        raise typer.Exit(code=1)
 
 
 # =========================================================================

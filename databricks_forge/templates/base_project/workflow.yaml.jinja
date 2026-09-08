@@ -67,4 +67,15 @@ tasks:
       - "optimize_silver_table"
     file: "sql/04_iceberg_uniform.sql"
 
+  - name: "database_connector_runner"
+    type: "notebook"
+    description: "Executes external database ingestion / reverse-ETL connector runner"
+    depends_on:
+      - "enable_iceberg_uniform"
+    path: "notebooks/run_database_connectors_notebook.py"
+    parameters:
+      db_type: "sqlite"
+      operation: "ingest_to_lakehouse"
+
+
 

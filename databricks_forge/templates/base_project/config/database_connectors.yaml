@@ -1,0 +1,48 @@
+# ====================================================================
+# {{project_name}} - External Database Connections Configuration
+# ====================================================================
+# Passwords and sensitive keys are retrieved automatically via:
+# get_secret(secret_scope, secret_key)
+# (Databricks Secret Scopes in cloud, .env in local dev/Docker)
+
+databases:
+  postgresql_source:
+    type: "postgresql"
+    host: "postgres.internal.net"
+    port: 5432
+    database: "production_orders"
+    user: "lakehouse_ingest"
+    secret_scope: "postgres_scope"
+    secret_key: "password"
+    fetchsize: 10000
+    num_partitions: 4
+
+  mysql_source:
+    type: "mysql"
+    host: "mysql.internal.net"
+    port: 3306
+    database: "crm_data"
+    user: "crm_readonly"
+    secret_scope: "mysql_scope"
+    secret_key: "password"
+    fetchsize: 10000
+
+  sqlserver_dw:
+    type: "sqlserver"
+    host: "sqlserver.database.windows.net"
+    port: 1433
+    database: "analytics_dw"
+    user: "etl_runner"
+    secret_scope: "mssql_scope"
+    secret_key: "password"
+    batchsize: 5000
+
+  snowflake_target:
+    type: "snowflake"
+    host: "account.snowflakecomputing.com"
+    database: "ENTERPRISE_DW"
+    schema: "PUBLIC"
+    warehouse: "COMPUTE_WH"
+    user: "forge_service_account"
+    secret_scope: "snowflake_scope"
+    secret_key: "password"

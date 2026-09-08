@@ -24,6 +24,7 @@ O **`databricks-forge-cli`** é a ferramenta definitiva de engenharia de dados m
 ### Principais Pilares:
 - 🎨 **CLI Visual & Interativa**: Banner ASCII estilizado (`DATABRICKS FORGE CLI`) e feedback rico no terminal via Rich.
 - 📁 **Suporte a Múltiplos Formatos de Arquivo**: Ingestão, conversão e escrita contínua entre **Parquet**, **ORC**, **Avro**, **CSV**, **JSON/JSONL** e **Delta Lake** (`forge data convert`, `read_dataset()`, `write_dataset()`).
+- 🔌 **Conectores de Banco de Dados & Reverse-ETL**: Ingestão paralela particionada via JDBC (Bronze) e exportação reversa (Gold) para **PostgreSQL**, **MySQL**, **SQL Server**, **Oracle**, **Snowflake**, **MongoDB**, **Google BigQuery** e **SQLite** com validação de conectividade via handshake TCP (`forge connector test-connection`, `read_database_table()`, `write_database_table()`).
 - 🧊 **Apache Iceberg & Delta UniForm**: Geração nativa de metadados Iceberg sobre tabelas Delta Lake sem duplicação de dados (`delta.universalFormat.enabledFormats = 'iceberg'`), permitindo leitura aberta em Trino, Snowflake, AWS Athena e DuckDB, além de suporte a time-travel.
 - ⚡ **Template Structured Streaming**: Ingestão contínua e micro-batch (`trigger(availableNow=True)`) com Delta Lake, watermarking de 10 minutos, janelas deslizantes/tumbling de 5 minutos e checkpoints tolerantes a falhas.
 - 🚀 **Tuning & Otimização de Performance**: Comandos `forge tune` para compactação de arquivos Delta (`OPTIMIZE`), clustering multidimensional (`ZORDER BY`), limpeza segura de snapshots (`VACUUM`) e perfis de Spark AQE (`balanced`, `write_heavy`, `read_heavy`).
@@ -192,6 +193,45 @@ forge iceberg snapshots transactions_silver
 ```
 No Databricks CE, execute o notebook `notebooks/run_multiformat_notebook.py` para visualizar a ingestão heterogênea e ativação do UniForm em tempo real.
 
+### 11. Conectores de Bancos de Dados & Reverse-ETL (`forge connector`)
+Integre até 8 bancos de dados relacionais, NoSQL e data warehouses externos (PostgreSQL, MySQL, SQL Server, Oracle, Snowflake, MongoDB, BigQuery, SQLite):
+```bash
+# Lista todos os motores de banco de dados suportados, drivers e portas padrão
+forge connector list
+
+# Testa reachability de rede e handshake TCP antes de agendar pipelines
+forge connector test-connection postgresql --host db.internal --port 5432
+
+# Planeja ingestão paralela de tabela externa particionada para a camada Bronze Delta
+forge connector plan-ingest postgresql customers bronze_customers -d prod_db -p id -n 8 --fetchsize 5000
+
+# Planeja exportação reversa (Reverse-ETL) da camada Gold Delta para banco operacional
+forge connector plan-export gold_kpis mysql kpi_dashboard -d analytics_db -m overwrite --batchsize 2000
+```
+No código Python do projeto:
+```python
+from retail_lakehouse.connectors import read_database_table, write_database_table
+
+# Ingestão paralela de PostgreSQL com credenciais seguras via Secret Scope
+df_customers = read_database_table(
+    spark,
+    db_type="postgresql",
+    table_name="public.customers",
+    partition_column="customer_id",
+    num_partitions=8,
+)
+
+# Reverse-ETL: exporta tabela Gold refinada para MySQL operacional
+write_database_table(
+    df_kpis,
+    db_type="mysql",
+    target_table="sales_kpis",
+    mode="overwrite",
+    batchsize=2000,
+)
+```
+No Databricks CE, execute o notebook interativo `notebooks/run_database_connectors_notebook.py` para testar ingestão e Reverse-ETL com widgets configuráveis.
+
 ---
 
 ## 🧰 Referência Completa de Comandos
@@ -204,6 +244,14 @@ No Databricks CE, execute o notebook `notebooks/run_multiformat_notebook.py` par
 | `forge deploy` | Envia Wheel, SQLs e Master DAG Runner para o Databricks Workspace |
 | `forge check` | Diagnóstico de pré-requisitos (Python, Java, Docker, Databricks API) |
 | `forge run-notebook` | Gera URL direta e guia de execução para o notebook no Databricks CE |
+
+### Conectores de Bancos de Dados (`forge connector`)
+| Comando | Descrição |
+|---|---|
+| `forge connector list` | Lista catálogo com os 8 bancos de dados suportados, drivers e portas |
+| `forge connector test-connection <db_type>` | Testa handshake TCP de rede para validar portas e firewalls |
+| `forge connector plan-ingest <db_type>` | Gera código de ingestão JDBC paralela particionada para Delta |
+| `forge connector plan-export <db_type>` | Gera código de exportação em lote Reverse-ETL de Delta para BD externo |
 
 ### Multi-Formatos (`forge data`)
 | Comando | Descrição |

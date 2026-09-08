@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.0] - 2026-09-07
+
+### Added
+- **Multi-Database Connectors & Reverse-ETL Engine**:
+  - `databricks_forge.core.connectors`:
+    - Engine catalog supporting 8 relational, data warehouse, and NoSQL databases: PostgreSQL, MySQL, Microsoft SQL Server, Oracle Database, Snowflake, MongoDB, Google BigQuery, and SQLite.
+    - `build_jdbc_url()`: Automated JDBC connection string constructor with default ports and driver classes.
+    - `build_ingest_plan()`: Generates partitioned parallel JDBC reader code with bounded column slicing (`partitionColumn`, `lowerBound`, `upperBound`, `numPartitions`, `fetchsize`).
+    - `build_export_plan()`: Generates Reverse-ETL export code to persist curated Gold Delta tables into operational external databases (`batchsize`, `mode`).
+    - `check_db_connectivity()`: Real-time TCP socket handshake testing network reachability, firewalls, and ports before deploying jobs.
+  - CLI commands under `forge connector`:
+    - `forge connector list`: Displays interactive rich catalog of all supported database engines, drivers, and default ports.
+    - `forge connector test-connection <db_type> [--host <host>] [--port <port>] [--timeout <sec>]`: Tests network reachability to remote database hosts.
+    - `forge connector plan-ingest <db_type> <source_table> <target_delta_table> -d <database> [-h <host>] [-u <user>] [-p <col>] [-n <partitions>] [--fetchsize <size>]`: Generates high-throughput parallel ingestion code.
+    - `forge connector plan-export <source_delta_table> <db_type> <target_table> -d <database> [-h <host>] [-u <user>] [-m append|overwrite] [--batchsize <n>]`: Generates batch Reverse-ETL export code.
+  - Project Template Enhancements:
+    - `src/{{project_slug}}/connectors.py`: Production-grade helper methods `read_database_table()` and `write_database_table()` with PySpark fallback classes and Databricks secrets resolution.
+    - `config/database_connectors.yaml`: Pre-configured environment-driven database endpoints, JDBC options, partition settings, and Databricks Secret scope mappings.
+    - `notebooks/run_database_connectors_notebook.py`: Interactive Databricks CE notebook with UI widgets for database type, mode (ingest/export), source, and target tables.
+    - `workflow.yaml.jinja`: Orchestrates `database_connector_runner` task within the DAG.
+    - `Makefile`: Added `make db-list` and `make db-test` commands.
+
+---
+
 ## [0.4.0] - 2026-09-07
 
 ### Added
