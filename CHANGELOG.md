@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.6.0] - 2026-09-07
+
+### Added
+- **Databricks Jobs API v2.1 Remote Execution & Serverless Workflows**:
+  - `DatabricksCEClient`: Added methods for programmatic job orchestration:
+    - `create_job(payload)`: Creates multi-task workflows on Databricks via `POST /api/2.1/jobs/create`.
+    - `run_job(job_id, parameters)`: Triggers immediate runs via `POST /api/2.1/jobs/run-now`.
+    - `get_run(run_id)`: Fetches run lifecycle state, task breakdowns, duration, and web page URLs.
+    - `wait_for_run(run_id, timeout_sec, poll_interval, callback)`: Live polling with real-time state streaming.
+  - `DAGWorkflow.to_databricks_jobs_api_payload(serverless=True)`: Full support for Databricks Serverless Compute execution without requiring pre-warmed clusters or EC2 cross-account instance roles.
+  - New CLI Command Group `forge job`:
+    - `forge job create [--file <workflow.yaml>] [--workspace-base <path>] [--serverless/--no-serverless]`: Registers multi-task DAG in Databricks.
+    - `forge job run <job_id> [--wait/--no-wait]`: Triggers and monitors job runs.
+    - `forge job run-dag [--file <workflow.yaml>] [--workspace-base <path>]`: All-in-one DAG compilation, job registration, trigger, and real-time task status streaming.
+  - `forge dag submit`: Remote execution shortcut for submitting workflows to Databricks.
+- **Reference Medallion Lakehouse Workflow (`examples/medallion_lakehouse`)**:
+  - `notebooks/01_raw_bronze.py`: Ingestion of raw e-commerce events with dirty-record injection and audit metadata into `medallion_bronze_transactions`.
+  - `notebooks/02_silver_clean.py`: Deduplication, type casting, filtering invalid statuses/amounts, timestamp parsing, and date partitioning into `medallion_silver_transactions`.
+  - `notebooks/03_gold_kpis.py`: Daily category aggregations and customer lifetime VIP metrics into `medallion_gold_sales_kpis` and `medallion_gold_customer_kpis`.
+  - `workflow.yaml`: Strict 3-step DAG with topological dependency validation.
+
+---
+
 ## [0.5.0] - 2026-09-07
 
 ### Added

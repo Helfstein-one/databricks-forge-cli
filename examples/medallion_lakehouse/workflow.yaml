@@ -1,0 +1,29 @@
+name: "medallion_lakehouse_workflow"
+description: "End-to-end Medallion DAG (Bronze -> Silver -> Gold) orchestrated by Databricks Forge CLI"
+
+compute:
+  cloud: "aws"
+  node_type_id: "i3.xlarge"
+  spark_version: "15.4.x-scala2.12"
+  single_node: true
+  num_workers: 0
+
+tasks:
+  - name: "bronze_raw_ingestion"
+    type: "notebook"
+    description: "Ingests synthetic raw transaction records into Bronze Delta table"
+    path: "notebooks/01_raw_bronze.py"
+
+  - name: "silver_clean_transformation"
+    type: "notebook"
+    description: "Cleanses, deduplicates, and enforces quality checks for Silver Delta table"
+    depends_on:
+      - "bronze_raw_ingestion"
+    path: "notebooks/02_silver_clean.py"
+
+  - name: "gold_kpis_aggregation"
+    type: "notebook"
+    description: "Computes sales and customer lifetime KPIs for Gold Delta tables"
+    depends_on:
+      - "silver_clean_transformation"
+    path: "notebooks/03_gold_kpis.py"

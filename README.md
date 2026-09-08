@@ -30,6 +30,7 @@ O **`databricks-forge-cli`** é a ferramenta definitiva de engenharia de dados m
 - 🚀 **Tuning & Otimização de Performance**: Comandos `forge tune` para compactação de arquivos Delta (`OPTIMIZE`), clustering multidimensional (`ZORDER BY`), limpeza segura de snapshots (`VACUUM`) e perfis de Spark AQE (`balanced`, `write_heavy`, `read_heavy`).
 - 📊 **Logging Estruturado & Observabilidade**: Formatador JSON ISO 8601 para agregadores de logs (Datadog, CloudWatch), decorator de auditoria `@pipeline_audit_step` para medição automática de latência e contagem de linhas, e gravação em tabela Delta de auditoria (`pipeline_execution_audit`).
 - 🌐 **Orquestração de Múltiplos Jobs em DAG**: Defina grafos de tarefas com dependências (`depends_on`) no `workflow.yaml`, com validação topológica, detecção de ciclos e geração de **Master DAG Runner** para o Databricks Community Edition ou payload nativo da Jobs API v2.1.
+- 💼 **Execução Remota de Jobs & Serverless Workflows**: Orquestre pipelines multi-tarefa diretamente no Databricks via Jobs API v2.1 (`forge job run-dag`, `forge dag submit`) com suporte nativo a **Serverless Compute** e streaming em tempo real do status de execução.
 - 🗄️ **Suporte Nativo a Jobs SQL**: Execute scripts `.sql` localmente em Delta Lake ou faça deploy de consultas diretamente no Databricks Workspace.
 - 💻 **Catálogo de Máquinas & Compute**: Escolha nós para **AWS** (`i3.xlarge`, `m5d.large`), **Azure** (`Standard_DS3_v2`, `D4s_v5`), **GCP** (`n1-standard-4`) e **Community Edition** (`SingleNode` gratuito, 0 workers).
 - 🔒 **Secrets & Variáveis de Ambiente**: Sincronização automática do arquivo local `.env` com os Secret Scopes do Databricks (`forge secret sync-env`) e função híbrida `get_secret(scope, key)`.
@@ -232,6 +233,19 @@ write_database_table(
 ```
 No Databricks CE, execute o notebook interativo `notebooks/run_database_connectors_notebook.py` para testar ingestão e Reverse-ETL com widgets configuráveis.
 
+### 12. Execução Remota de Jobs & Workflows Serverless (`forge job`)
+Execute pipelines completos na nuvem da Databricks com resolução topológica de dependências e monitoramento em tempo real:
+```bash
+# 1. Executa e transmite o status de todas as tarefas da DAG no Databricks
+forge job run-dag --file workflow.yaml --workspace-base /Shared/my_project --serverless
+
+# 2. Ou registre a DAG via Jobs API v2.1 para execuções agendadas
+forge job create --file workflow.yaml --serverless
+
+# 3. Dispare manualmente uma execução por ID e acompanhe o progresso
+forge job run <job_id>
+```
+
 ---
 
 ## 🧰 Referência Completa de Comandos
@@ -244,6 +258,14 @@ No Databricks CE, execute o notebook interativo `notebooks/run_database_connecto
 | `forge deploy` | Envia Wheel, SQLs e Master DAG Runner para o Databricks Workspace |
 | `forge check` | Diagnóstico de pré-requisitos (Python, Java, Docker, Databricks API) |
 | `forge run-notebook` | Gera URL direta e guia de execução para o notebook no Databricks CE |
+
+### Jobs Remotos & Serverless (`forge job`)
+| Comando | Descrição |
+|---|---|
+| `forge job run-dag` | Registra, dispara e transmite execução multi-tarefa em tempo real na nuvem |
+| `forge job create` | Cria ou atualiza workflow na Jobs API v2.1 (Serverless ou Job Cluster) |
+| `forge job run <job_id>` | Dispara execução de job existente e exibe URL de monitoramento |
+| `forge dag submit` | Atalho para submeter e executar a DAG remotamente no Databricks |
 
 ### Conectores de Bancos de Dados (`forge connector`)
 | Comando | Descrição |

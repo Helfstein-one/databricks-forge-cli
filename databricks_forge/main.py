@@ -87,6 +87,7 @@ tune_app = typer.Typer(name="tune", help="⚡ Spark & Delta Lake performance tun
 data_app = typer.Typer(name="data", help="📁 Multi-format dataset inspection and conversion (Parquet, ORC, Avro, CSV, JSON, Delta).")
 iceberg_app = typer.Typer(name="iceberg", help="🧊 Apache Iceberg tables and Delta UniForm compatibility.")
 connector_app = typer.Typer(name="connector", help="🔌 Multi-database connectors (PostgreSQL, MySQL, SQL Server, Oracle, Snowflake, Mongo, BigQuery, SQLite).")
+job_app = typer.Typer(name="job", help="💼 Remote execution and management of Databricks Jobs (Jobs API v2.1).")
 
 app.add_typer(sql_app)
 app.add_typer(dag_app)
@@ -96,6 +97,7 @@ app.add_typer(tune_app)
 app.add_typer(data_app)
 app.add_typer(iceberg_app)
 app.add_typer(connector_app)
+app.add_typer(job_app)
 
 console = Console()
 
@@ -617,6 +619,202 @@ def dag_run_cmd(
             console.print(f"[green]✔ Task {task.name} executed successfully.[/green]")
 
     console.print(f"\n[bold green]✔ Completed all {len(order)} tasks in DAG {wf.name}![/bold green]")
+
+
+@dag_app.command(name="submit")
+def dag_submit_cmd(
+    workflow_file: Path = typer.Option(Path("workflow.yaml"), "--file", "-f", help="Path to workflow.yaml."),
+    workspace_base: str = typer.Option("/Shared/forge_deployments", "--workspace-base", "-w", help="Workspace base directory for artifacts."),
+    serverless: bool = typer.Option(True, "--serverless/--no-serverless", help="Use Databricks Serverless Compute."),
+    host: Optional[str] = typer.Option(None, "--host", envvar="DATABRICKS_HOST", help="Databricks Host URL."),
+    token: Optional[str] = typer.Option(None, "--token", envvar="DATABRICKS_TOKEN", help="Databricks Personal Access Token."),
+):
+    """🚀 Submit and execute DAG workflow on remote Databricks workspace via Jobs API v2.1."""
+    job_run_dag_cmd(
+        workflow_file=workflow_file,
+        workspace_base=workspace_base,
+        serverless=serverless,
+        host=host,
+        token=token,
+    )
+
+
+# =========================================================================
+# JOB SUBCOMMANDS (Databricks Jobs API v2.1)
+# =========================================================================
+
+@job_app.command(name="create")
+def job_create_cmd(
+    workflow_file: Path = typer.Option(Path("workflow.yaml"), "--file", "-f", help="Path to workflow.yaml."),
+    workspace_base: str = typer.Option("/Shared/forge_deployments", "--workspace-base", "-w", help="Workspace base directory for artifacts."),
+    serverless: bool = typer.Option(True, "--serverless/--no-serverless", help="Use Databricks Serverless Compute."),
+    host: Optional[str] = typer.Option(None, "--host", envvar="DATABRICKS_HOST", help="Databricks Host URL."),
+    token: Optional[str] = typer.Option(None, "--token", envvar="DATABRICKS_TOKEN", help="Databricks Personal Access Token."),
+):
+    """💼 Register a multi-task DAG workflow in Databricks via Jobs API v2.1."""
+    if not host or not token:
+        console.print("[bold red]Error:[/bold red] Both --host and --token are required (or set DATABRICKS_HOST and DATABRICKS_TOKEN).")
+        raise typer.Exit(code=1)
+
+    wf = DAGWorkflow.from_yaml(workflow_file)
+    wf.validate_dag()
+    client = DatabricksCEClient(host=host, token=token)
+
+    with console.status(f"[bold blue]Registering Job '{wf.name}' in Databricks...[/bold blue]"):
+        payload = wf.to_databricks_jobs_api_payload(workspace_base_path=workspace_base, serverless=serverless)
+        res = client.create_job(payload)
+        job_id = res.get("job_id")
+
+    console.print(Panel(
+        f"[bold green]✔ Databricks Job Registered Successfully![/bold green]\n\n"
+        f"[bold cyan]Job Name:[/bold cyan]    [white]{wf.name}[/white]\n"
+        f"[bold cyan]Job ID:[/bold cyan]      [yellow]{job_id}[/yellow]\n"
+        f"[bold cyan]Tasks:[/bold cyan]       [white]{len(wf.tasks)} tasks[/white]\n"
+        f"[bold cyan]Compute:[/bold cyan]     [white]{'Serverless' if serverless else 'Job Cluster'}[/white]",
+        title="💼 Databricks Job Created",
+        border_style="green",
+    ))
+
+
+@job_app.command(name="run")
+def job_run_cmd(
+    job_id: int = typer.Argument(..., help="Databricks Job ID to trigger."),
+    wait: bool = typer.Option(True, "--wait/--no-wait", help="Wait for job run to finish and stream status."),
+    host: Optional[str] = typer.Option(None, "--host", envvar="DATABRICKS_HOST", help="Databricks Host URL."),
+    token: Optional[str] = typer.Option(None, "--token", envvar="DATABRICKS_TOKEN", help="Databricks Personal Access Token."),
+):
+    """▶ Trigger a Databricks Job execution and optionally stream progress."""
+    if not host or not token:
+        console.print("[bold red]Error:[/bold red] Both --host and --token are required (or set DATABRICKS_HOST and DATABRICKS_TOKEN).")
+        raise typer.Exit(code=1)
+
+    client = DatabricksCEClient(host=host, token=token)
+    with console.status(f"[bold blue]Triggering Databricks Job {job_id}...[/bold blue]"):
+        res = client.run_job(job_id=job_id)
+        run_id = res.get("run_id")
+
+    console.print(f"[bold green]✔ Run triggered![/bold green] Run ID: [yellow]{run_id}[/yellow]")
+
+    if wait and run_id:
+        console.print("[bold blue]Streaming job execution status...[/bold blue]")
+        last_state = ""
+        with console.status("[bold cyan]Executing on Databricks...[/bold cyan]") as status:
+            def on_progress(data: Dict[str, Any]):
+                nonlocal last_state
+                state = data.get("state", {})
+                current = f"{state.get('life_cycle_state', 'UNKNOWN')} / {state.get('result_state', 'PENDING')}"
+                if current != last_state:
+                    last_state = current
+                    status.update(f"[bold cyan]Status: {current}[/bold cyan]")
+
+            final_run = client.wait_for_run(run_id=run_id, callback=on_progress)
+
+        state = final_run.get("state", {})
+        result = state.get("result_state")
+        page_url = final_run.get("run_page_url", "")
+
+        if result == "SUCCESS":
+            console.print(Panel(
+                f"[bold green]✔ Job Execution Succeeded![/bold green]\n\n"
+                f"[bold cyan]Run ID:[/bold cyan]    [yellow]{run_id}[/yellow]\n"
+                f"[bold cyan]Result:[/bold cyan]    [bold green]{result}[/bold green]\n"
+                f"[bold cyan]Run URL:[/bold cyan]   [blue underline]{page_url}[/blue underline]",
+                title="💼 Job Execution Finished",
+                border_style="green",
+            ))
+        else:
+            console.print(Panel(
+                f"[bold red]✖ Job Execution Failed or Terminated with status: {result}[/bold red]\n\n"
+                f"[bold cyan]Run ID:[/bold cyan]    [yellow]{run_id}[/yellow]\n"
+                f"[bold cyan]Message:[/bold cyan]   [red]{state.get('state_message', '')}[/red]\n"
+                f"[bold cyan]Run URL:[/bold cyan]   [blue underline]{page_url}[/blue underline]",
+                title="💼 Job Execution Status",
+                border_style="red",
+            ))
+
+
+@job_app.command(name="run-dag")
+def job_run_dag_cmd(
+    workflow_file: Path = typer.Option(Path("workflow.yaml"), "--file", "-f", help="Path to workflow.yaml."),
+    workspace_base: str = typer.Option("/Shared/forge_deployments", "--workspace-base", "-w", help="Workspace base directory for artifacts."),
+    serverless: bool = typer.Option(True, "--serverless/--no-serverless", help="Use Databricks Serverless Compute."),
+    host: Optional[str] = typer.Option(None, "--host", envvar="DATABRICKS_HOST", help="Databricks Host URL."),
+    token: Optional[str] = typer.Option(None, "--token", envvar="DATABRICKS_TOKEN", help="Databricks Personal Access Token."),
+):
+    """🌐 Register and execute a multi-task DAG directly on remote Databricks workspace."""
+    if not host or not token:
+        console.print("[bold red]Error:[/bold red] Both --host and --token are required (or set DATABRICKS_HOST and DATABRICKS_TOKEN).")
+        raise typer.Exit(code=1)
+
+    wf = DAGWorkflow.from_yaml(workflow_file)
+    order = wf.validate_dag()
+    client = DatabricksCEClient(host=host, token=token)
+
+    console.print(Panel(
+        f"Deploying & Executing DAG: [bold green]{wf.name}[/bold green]\n"
+        f"Tasks: [white]{len(wf.tasks)} ({' ➔ '.join(order)})[/white]\n"
+        f"Compute: [cyan]{'Serverless' if serverless else 'Job Cluster'}[/cyan]\n"
+        f"Workspace Base: [yellow]{workspace_base}[/yellow]",
+        title="🌐 Databricks Forge - Remote DAG Runner",
+        border_style="cyan",
+    ))
+
+    # 1. Create or register Job
+    with console.status(f"[bold blue]Registering Job '{wf.name}' in Databricks...[/bold blue]"):
+        payload = wf.to_databricks_jobs_api_payload(workspace_base_path=workspace_base, serverless=serverless)
+        job_res = client.create_job(payload)
+        job_id = job_res.get("job_id")
+
+    console.print(f"[green]✔ Job created with ID:[/green] [yellow]{job_id}[/yellow]")
+
+    # 2. Trigger Job Run
+    with console.status(f"[bold blue]Triggering Run for Job {job_id}...[/bold blue]"):
+        run_res = client.run_job(job_id=job_id)
+        run_id = run_res.get("run_id")
+
+    console.print(f"[green]✔ Run triggered with ID:[/green] [yellow]{run_id}[/yellow]")
+
+    # 3. Stream execution status
+    with console.status("[bold cyan]Executing tasks on Databricks...[/bold cyan]") as status:
+        def on_progress(data: Dict[str, Any]):
+            state = data.get("state", {})
+            lcs = state.get("life_cycle_state", "UNKNOWN")
+            rs = state.get("result_state", "IN_PROGRESS")
+            status.update(f"[bold cyan]Running DAG on Databricks... State: {lcs} / {rs}[/bold cyan]")
+
+        final_run = client.wait_for_run(run_id=run_id, callback=on_progress)
+
+    # 4. Display task breakdown table
+    table = Table(title=f"Task Execution Summary (Job {job_id} / Run {run_id})", show_header=True)
+    table.add_column("Task Key", style="bold cyan")
+    table.add_column("Run ID", style="white")
+    table.add_column("Duration", style="yellow")
+    table.add_column("Result State", style="bold")
+
+    for t in final_run.get("tasks", []):
+        dur_sec = round(t.get("execution_duration", 0) / 1000.0, 1)
+        res_state = t.get("state", {}).get("result_state", "UNKNOWN")
+        style = "green" if res_state == "SUCCESS" else "red"
+        table.add_row(t.get("task_key"), str(t.get("run_id")), f"{dur_sec}s", f"[{style}]{res_state}[/{style}]")
+
+    console.print(table)
+
+    top_state = final_run.get("state", {}).get("result_state")
+    page_url = final_run.get("run_page_url", "")
+    if top_state == "SUCCESS":
+        console.print(Panel(
+            f"[bold green]✔ All tasks in DAG completed successfully![/bold green]\n\n"
+            f"[bold cyan]Run URL:[/bold cyan] [blue underline]{page_url}[/blue underline]",
+            title="🎯 DAG Execution Success",
+            border_style="green",
+        ))
+    else:
+        console.print(Panel(
+            f"[bold red]✖ DAG Execution Failed:[/bold red] {final_run.get('state', {}).get('state_message')}\n\n"
+            f"[bold cyan]Run URL:[/bold cyan] [blue underline]{page_url}[/blue underline]",
+            title="✖ DAG Execution Failed",
+            border_style="red",
+        ))
 
 
 # =========================================================================

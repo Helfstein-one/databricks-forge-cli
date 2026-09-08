@@ -81,3 +81,80 @@ def test_client_upload_file(mock_post, tmp_path: Path):
     
     decoded = base64.b64decode(payload["content"]).decode("utf-8")
     assert decoded == "print('hello databricks')"
+
+
+@patch("requests.post")
+def test_client_create_job(mock_post):
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {"job_id": 12345}
+    mock_post.return_value = mock_resp
+
+    client = DatabricksCEClient(host="https://community.cloud.databricks.com", token="my-token")
+    res = client.create_job({"name": "test-job", "tasks": []})
+
+    assert res["job_id"] == 12345
+    mock_post.assert_called_once_with(
+        "https://community.cloud.databricks.com/api/2.1/jobs/create",
+        headers=client.headers,
+        json={"name": "test-job", "tasks": []},
+        timeout=60,
+    )
+
+
+@patch("requests.post")
+def test_client_run_job(mock_post):
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {"run_id": 9999}
+    mock_post.return_value = mock_resp
+
+    client = DatabricksCEClient(host="https://community.cloud.databricks.com", token="my-token")
+    res = client.run_job(job_id=12345)
+
+    assert res["run_id"] == 9999
+    mock_post.assert_called_once_with(
+        "https://community.cloud.databricks.com/api/2.1/jobs/run-now",
+        headers=client.headers,
+        json={"job_id": 12345},
+        timeout=60,
+    )
+
+
+@patch("requests.get")
+def test_client_get_run(mock_get):
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {"run_id": 9999, "state": {"life_cycle_state": "TERMINATED", "result_state": "SUCCESS"}}
+    mock_get.return_value = mock_resp
+
+    client = DatabricksCEClient(host="https://community.cloud.databricks.com", token="my-token")
+    res = client.get_run(run_id=9999)
+
+    assert res["run_id"] == 9999
+    assert res["state"]["result_state"] == "SUCCESS"
+    mock_get.assert_called_once_with(
+        "https://community.cloud.databricks.com/api/2.1/jobs/runs/get",
+        headers=client.headers,
+        params={"run_id": 9999},
+        timeout=60,
+    )
+
+
+@patch("requests.get")
+def test_client_wait_for_run(mock_get):
+    mock_resp1 = MagicMock()
+    mock_resp1.status_code = 200
+    mock_resp1.json.return_value = {"run_id": 9999, "state": {"life_cycle_state": "RUNNING"}}
+
+    mock_resp2 = MagicMock()
+    mock_resp2.status_code = 200
+    mock_resp2.json.return_value = {"run_id": 9999, "state": {"life_cycle_state": "TERMINATED", "result_state": "SUCCESS"}}
+
+    mock_get.side_effect = [mock_resp1, mock_resp2]
+
+    client = DatabricksCEClient(host="https://community.cloud.databricks.com", token="my-token")
+    res = client.wait_for_run(run_id=9999, poll_interval=0)
+
+    assert res["state"]["result_state"] == "SUCCESS"
+    assert mock_get.call_count == 2

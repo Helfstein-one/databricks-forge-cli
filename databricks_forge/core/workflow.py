@@ -171,7 +171,8 @@ class DAGWorkflow:
 
     def to_databricks_jobs_api_payload(
         self,
-        workspace_base_path: str = "/Shared/forge_deployments"
+        workspace_base_path: str = "/Shared/forge_deployments",
+        serverless: bool = False,
     ) -> Dict[str, Any]:
         """Compiles DAG into Databricks Jobs API v2.1 multi-task job JSON payload."""
         self.validate_dag()
@@ -185,9 +186,11 @@ class DAGWorkflow:
         for t in self.tasks:
             item: Dict[str, Any] = {
                 "task_key": t.name,
-                "job_cluster_key": cluster_key,
                 "description": t.description or f"Task {t.name}",
             }
+            if not serverless:
+                item["job_cluster_key"] = cluster_key
+
             if t.depends_on:
                 item["depends_on"] = [{"task_key": dep} for dep in t.depends_on]
 
@@ -220,14 +223,16 @@ class DAGWorkflow:
 
         payload: Dict[str, Any] = {
             "name": self.name,
-            "job_clusters": [
+            "tasks": dbx_tasks,
+        }
+
+        if not serverless:
+            payload["job_clusters"] = [
                 {
                     "job_cluster_key": cluster_key,
                     "new_cluster": cluster_spec,
                 }
-            ],
-            "tasks": dbx_tasks,
-        }
+            ]
 
         if self.schedule:
             payload["schedule"] = {

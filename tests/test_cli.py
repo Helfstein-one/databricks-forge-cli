@@ -12,7 +12,7 @@ def test_cli_version():
     result = runner.invoke(app, ["--version"])
     assert result.exit_code == 0
     assert "Databricks Forge CLI" in result.output
-    assert "0.5.0" in result.output
+    assert "0.6.0" in result.output
 
 
 def test_cli_check():
@@ -148,3 +148,58 @@ def test_cli_deploy(mock_build, mock_client_cls, tmp_path: Path):
     assert "Deployment to Databricks CE Succeeded!" in result.output
     mock_client.verify_connection.assert_called_once()
     mock_client.upload_file.assert_called()
+
+
+def test_cli_job_help():
+    result = runner.invoke(app, ["job", "--help"])
+    assert result.exit_code == 0
+    assert "create" in result.output
+    assert "run" in result.output
+    assert "run-dag" in result.output
+
+
+@patch("databricks_forge.main.DatabricksCEClient")
+def test_cli_job_create(mock_client_cls, tmp_path: Path):
+    mock_client = MagicMock()
+    mock_client_cls.return_value = mock_client
+    mock_client.create_job.return_value = {"job_id": 88888}
+
+    wf_file = tmp_path / "workflow.yaml"
+    wf_file.write_text(
+        "name: test_job\ncompute:\n  cloud: aws\n  node_type_id: i3.xlarge\ntasks:\n  - name: step1\n    type: notebook\n    path: test.py\n"
+    )
+
+    result = runner.invoke(app, [
+        "job", "create",
+        "--file", str(wf_file),
+        "--host", "https://dbc-test.cloud.databricks.com",
+        "--token", "dapi-fake",
+    ])
+
+    assert result.exit_code == 0
+    assert "88888" in result.output
+    assert "Databricks Job Registered Successfully" in result.output
+    mock_client.create_job.assert_called_once()
+
+
+@patch("databricks_forge.main.DatabricksCEClient")
+def test_cli_job_run(mock_client_cls):
+    mock_client = MagicMock()
+    mock_client_cls.return_value = mock_client
+    mock_client.run_job.return_value = {"run_id": 77777}
+    mock_client.wait_for_run.return_value = {
+        "run_id": 77777,
+        "run_page_url": "https://dbc-test.cloud.databricks.com/#job/1/run/77777",
+        "state": {"result_state": "SUCCESS"},
+    }
+
+    result = runner.invoke(app, [
+        "job", "run", "88888",
+        "--host", "https://dbc-test.cloud.databricks.com",
+        "--token", "dapi-fake",
+    ])
+
+    assert result.exit_code == 0
+    assert "77777" in result.output
+    assert "SUCCESS" in result.output
+    mock_client.run_job.assert_called_once_with(job_id=88888)
