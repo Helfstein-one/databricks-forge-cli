@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.6.1] - 2026-09-08
+
+### Changed
+- **Rebuilt Architecture Diagrams from Scratch (`docs/architecture.drawio` & `docs/architecture.svg`)**:
+  - Re-architected `docs/architecture.drawio` from the ground up with **3 comprehensive tabs**:
+    1. **Aba 1: Experiência do Desenvolvedor (Funcional)**: End-to-end user journey across scaffolding (`forge init`), secrets management (`forge secret sync-env`), multi-engine JDBC ingestion (`forge connector`), local Docker Chispa testing with zero cloud cost, tuning & open formats (`forge tune` & `forge iceberg`), Kahn topological DAG orchestration (`forge dag`), GitHub Actions CI/CD matrix (Python 3.10, 3.11, 3.12), and remote cloud execution (`forge job run-dag`).
+    2. **Aba 2: Visão de Negócio, FinOps & Governança**: 4 strategic pillars detailing FinOps (80-90% dev compute savings, serverless per-second pricing), time-to-market acceleration (< 5 min setup), unified Unity Catalog governance with zero hardcoded secrets, and open data interoperability (Delta + Iceberg UniForm); complete with Medallion value chain and ROI comparative matrix.
+    3. **Aba 3: Solução de Dados (Databricks & AWS com Ícones Oficiais)**: Full enterprise data solution architecture featuring official vector iconography for **AWS** (RDS, Aurora, Kinesis, S3, Secrets Manager, IAM, EC2, Athena, Redshift, CloudWatch) and **Databricks** (Control Plane, Serverless Compute, Apache Spark 3.5, Unity Catalog, Delta Lake, Apache Iceberg UniForm, Databricks SQL).
+  - Updated `docs/architecture.svg` with official AWS and Databricks vector icons for immediate high-resolution rendering on GitHub.
+
+---
+
 ## [0.6.0] - 2026-09-07
 
 ### Added

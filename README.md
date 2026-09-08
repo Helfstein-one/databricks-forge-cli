@@ -47,11 +47,11 @@ O projeto conta com uma arquitetura modelada em 3 perspectivas integradas:
 
 ### 📑 Estrutura Multi-Aba no Draw.io ([`docs/architecture.drawio`](docs/architecture.drawio))
 
-O arquivo [`docs/architecture.drawio`](docs/architecture.drawio) contém **3 abas dedicadas**, prontas para visualização no [diagrams.net (Draw.io)](https://app.diagrams.net/):
+O arquivo [`docs/architecture.drawio`](docs/architecture.drawio) foi totalmente reconstruído e contém **3 abas dedicadas**, prontas para visualização no [diagrams.net (Draw.io)](https://app.diagrams.net/):
 
-1. **Aba 1: Experiência do Usuário (Funcional)**: Mapeamento completo da jornada do desenvolvedor, desde a inicialização com banner 3D, ciclo local sem custos no Docker, gestão de secrets até a execução da pipeline no Databricks CE.
-2. **Aba 2: Visão de Negócio (Business & ROI)**: Demonstração de FinOps (redução de 80%+ do compute bill de desenvolvimento), mitigação de riscos de segurança, aceleração de time-to-market e governança da cadeia de valor Medallion.
-3. **Aba 3: Visão Técnica & Cloud Architecture**: Visão detalhada de engenharia com Control Plane (REST APIs), Compute Plane (AWS `i3.xlarge`, Azure `DS3_v2`, GCP `n1-standard`, CE `SingleNode`), persistência ACID Delta Lake e CI/CD.
+1. **Aba 1: Experiência do Desenvolvedor (Funcional)**: Mapeamento completo da jornada do engenheiro de dados: scaffolding inteligente (`forge init`), gestão segura de secrets (`forge secret sync-env`), ingestão multi-banco com catálogo JDBC (`forge connector`), desenvolvimento local e testes unitários Chispa com custo zero de DBU, tunning Delta & Apache Iceberg UniForm (`forge tune` & `forge iceberg`), orquestração de DAG multi-job (Algoritmo de Kahn), esteira CI/CD e execução remota na nuvem (`forge job run-dag`).
+2. **Aba 2: Visão de Negócio, FinOps & Governança**: 4 pilares estratégicos de valor: FinOps com redução de 80% a 90% em custos de computação de desenvolvimento e tarifação por segundo via Serverless, aceleração de time-to-market (< 5 min), governança corporativa unificada com Unity Catalog e interoperabilidade total sem lock-in com Delta Lake + Apache Iceberg UniForm; além da cadeia de valor Medallion e matriz comparativa de ROI.
+3. **Aba 3: Solução de Dados (Databricks & AWS com Ícones Oficiais)**: Arquitetura técnica de solução de dados ponta a ponta com **ícones oficiais Databricks e AWS**: Ingestão (AWS RDS/Aurora, Enterprise DB, AWS Kinesis, AWS S3 Landing Zone), Orquestração e Segurança (AWS Secrets Manager, AWS IAM, Databricks Control Plane Jobs API v2.1), Computação Lakehouse (Databricks Serverless Compute, AWS EC2 i3.xlarge, Apache Spark 3.5), Armazenamento Medallion & Governança (Databricks Unity Catalog, S3 Bronze/Silver/Gold Delta Lake e Apache Iceberg UniForm) e Consumo Analítico (Databricks SQL, AWS Athena Serverless, Amazon Redshift Spectrum e AWS CloudWatch).
 
 ---
 

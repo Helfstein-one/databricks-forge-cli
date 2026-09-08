@@ -1,4 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1680 980" width="100%" height="100%" style="background:#090D16; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+"""
+Generator for docs/architecture.svg representing the Data Solution Architecture (Databricks & AWS) with official vector icons.
+"""
+
+def generate_svg():
+    svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1680 980" width="100%" height="100%" style="background:#090D16; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
   <defs>
     <!-- Gradients -->
     <linearGradient id="titleGrad" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -418,4 +423,15 @@
       Garantias: Arquitetura Lakehouse sem vendor lock-in · 100% de conformidade ACID no AWS S3 com Delta Lake e Apache Iceberg UniForm · Orquestração resiliente e Governança centralizada com Unity Catalog
     </text>
   </g>
-</svg>
+</svg>"""
+    return svg
+
+def main():
+    content = generate_svg()
+    target = "docs/architecture.svg"
+    with open(target, "w", encoding="utf-8") as f:
+        f.write(content)
+    print(f"File successfully written to {target} ({len(content)} bytes)")
+
+if __name__ == "__main__":
+    main()
