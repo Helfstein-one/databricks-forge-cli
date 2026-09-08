@@ -6,35 +6,36 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 
-# Stylized 3D Isometric / Block Shadow font with gradient layers
+# Stylized 3D Cyberpunk Isometric / Neon Block typography
 BANNER_3D_LINES = [
-    r"[bold red]  ██████╗  █████╗ ████████╗ █████╗ ██████╗ ██████╗  ██╗ ██████╗██╗  ██╗███████╗[/bold red]",
-    r"[bold color(208)]  ██╔══██╗██╔══██╗╚══██╔══╝██╔══██╗██╔══██╗██╔══██╗███║██╔════╝██║ ██╔╝██╔════╝[/bold color(208)]",
-    r"[bold color(214)]  ██║  ██║███████║   ██║   ███████║██████╔╝██████╔╝╚██║██║     █████═╝ ███████╗[/bold color(214)]",
-    r"[bold color(220)]  ██║  ██║██╔══██║   ██║   ██╔══██║██╔══██╗██╔══██╗ ██║██║     ██╔═██╗ ╚════██║[/bold color(220)]",
-    r"[bold color(45)]  ██████╔╝██║  ██║   ██║   ██║  ██║██████╔╝██║  ██║ ██║╚██████╗██║ ╚██╗███████║[/bold color(45)]",
-    r"[bold color(39)]  ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚═════╝ ╚═╝  ╚═╝ ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝[/bold color(39)]",
-    r"[bold color(129)]        ███████╗ ██████╗ ██████╗  ██████╗ ███████╗     ██████╗██╗     ██╗      [/bold color(129)]",
-    r"[bold color(135)]        ██╔════╝██╔═══██╗██╔══██╗██╔════╝ ██╔════╝    ██╔════╝██║     ██║      [/bold color(135)]",
-    r"[bold color(141)]        █████╗  ██║   ██║██████╔╝██║  ███╗█████╗      ██║     ██║     ██║      [/bold color(141)]",
-    r"[bold color(147)]        ██╔══╝  ██║   ██║██╔══██╗██║   ██║██╔══╝      ██║     ██║     ██║      [/bold color(147)]",
-    r"[bold color(153)]        ██║     ╚██████╔╝██║  ██║╚██████╔╝███████╗    ╚██████╗███████╗██║      [/bold color(153)]",
-    r"[bold color(81)]        ╚═╝      ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚══════╝     ╚═════╝╚══════╝╚═╝      [/bold color(81)]",
+    r"[bold color(201)]  ██████╗  █████╗ ████████╗ █████╗ ██████╗ ██████╗ ██╗ ██████╗██╗  ██╗[/bold color(201)]",
+    r"[bold color(198)]  ██╔══██╗██╔══██╗╚══██╔══╝██╔══██╗██╔══██╗██╔══██╗██║██╔════╝██║ ██╔╝[/bold color(198)]",
+    r"[bold color(207)]  ██║  ██║███████║   ██║   ███████║██████╔╝██████╔╝██║██║     █████═╝ [/bold color(207)]",
+    r"[bold color(45)]  ██║  ██║██╔══██║   ██║   ██╔══██║██╔══██╗██╔══██╗██║██║     ██╔═██╗ [/bold color(45)]",
+    r"[bold color(51)]  ██████╔╝██║  ██║   ██║   ██║  ██║██████╔╝██║  ██║██║╚██████╗██║ ╚██╗[/bold color(51)]",
+    r"[bold color(87)]  ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚═════╝ ╚═╝  ╚═╝╚═╝ ╚═════╝╚═╝  ╚═╝[/bold color(87)]",
+    r"[bold color(93)]  ░▒▓█[color(51)] CYBER-LAKEHOUSE [/color(51)]█▓▒░ [color(226)]// PROTOCOL 2077 //[/color(226)] ░▒▓█[color(201)] NEON-FORGE [/color(201)]█▓▒░[/bold color(93)]",
+    r"[bold color(226)]      ███████╗ ██████╗ ██████╗  ██████╗ ███████╗    ██████╗██╗     ██╗ [/bold color(226)]",
+    r"[bold color(220)]      ██╔════╝██╔═══██╗██╔══██╗██╔════╝ ██╔════╝   ██╔════╝██║     ██║ [/bold color(220)]",
+    r"[bold color(45)]      █████╗  ██║   ██║██████╔╝██║  ███╗█████╗     ██║     ██║     ██║ [/bold color(45)]",
+    r"[bold color(51)]      ██╔══╝  ██║   ██║██╔══██╗██║   ██║██╔══╝     ██║     ██║     ██║ [/bold color(51)]",
+    r"[bold color(198)]      ██║     ╚██████╔╝██║  ██║╚██████╔╝███████╗   ╚██████╗███████╗██║ [/bold color(198)]",
+    r"[bold color(201)]      ╚═╝      ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚══════╝    ╚═════╝╚══════╝╚═╝ [/bold color(201)]",
 ]
 
 
 def render_forge_banner(
     console: Console,
-    subtitle: str = "⚡ Industrial Lakehouse Engineering & CI/CD Toolkit"
+    subtitle: str = "⚡ Neon Industrial Lakehouse Engineering & CI/CD Toolkit"
 ) -> None:
-    """Renders the stylized 3D colorful ASCII banner for Databricks Forge CLI."""
+    """Renders the stylized 3D Cyberpunk ASCII banner for Databricks Forge CLI."""
     formatted_banner = "\n".join(BANNER_3D_LINES)
     
     panel = Panel(
         formatted_banner,
-        title="[bold color(196)]⚡ DATABRICKS FORGE CLI[/bold color(196)]",
+        title="[bold color(51)]◢◤ [bold color(201)]DATABRICKS FORGE CLI[/bold color(201)] [bold color(226)]// CYBERPUNK 3D //[/bold color(226)] ◢◤[/bold color(51)]",
         subtitle=f"[bold color(51)]{subtitle}[/bold color(51)]",
-        border_style="color(208)",
-        padding=(1, 2),
+        border_style="color(201)",
+        padding=(1, 1),
     )
     console.print(panel)

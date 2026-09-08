@@ -21,8 +21,16 @@
 
 O **`databricks-forge-cli`** é a ferramenta definitiva de engenharia de dados moderna para criar, testar, orquestrar e implantar projetos PySpark e SQL no Databricks.
 
+<div align="center">
+
+![Databricks Forge Terminal Demo](assets/terminal_demo.gif)
+
+*Demonstração da CLI em execução: banner 3D Cyberpunk, scaffolding automatizado, validação de DAG e catálogo de conectores.*
+
+</div>
+
 ### Principais Pilares:
-- 🎨 **CLI Visual & Interativa**: Banner ASCII estilizado (`DATABRICKS FORGE CLI`) e feedback rico no terminal via Rich.
+- 🎨 **CLI Visual & Interativa**: Banner ASCII 3D Cyberpunk neon (`DATABRICKS FORGE CLI // CYBERPUNK 3D`) e feedback rico no terminal via Rich.
 - 📁 **Suporte a Múltiplos Formatos de Arquivo**: Ingestão, conversão e escrita contínua entre **Parquet**, **ORC**, **Avro**, **CSV**, **JSON/JSONL** e **Delta Lake** (`forge data convert`, `read_dataset()`, `write_dataset()`).
 - 🔌 **Conectores de Banco de Dados & Reverse-ETL**: Ingestão paralela particionada via JDBC (Bronze) e exportação reversa (Gold) para **PostgreSQL**, **MySQL**, **SQL Server**, **Oracle**, **Snowflake**, **MongoDB**, **Google BigQuery** e **SQLite** com validação de conectividade via handshake TCP (`forge connector test-connection`, `read_database_table()`, `write_database_table()`).
 - 🧊 **Apache Iceberg & Delta UniForm**: Geração nativa de metadados Iceberg sobre tabelas Delta Lake sem duplicação de dados (`delta.universalFormat.enabledFormats = 'iceberg'`), permitindo leitura aberta em Trino, Snowflake, AWS Athena e DuckDB, além de suporte a time-travel.
@@ -78,7 +86,7 @@ Comandos disponíveis no terminal: `forge` ou `databricks-forge`.
 forge init retail-lakehouse --cloud aws --node-type i3.xlarge --workers 2
 cd retail-lakehouse
 ```
-Ao rodar, o banner ASCII estilizado **`DATABRICKS FORGE CLI`** é exibido no terminal e o scaffolding completo é montado.
+Ao rodar, o banner ASCII 3D Cyberpunk neon **`DATABRICKS FORGE CLI // CYBERPUNK 3D`** é exibido no terminal e o scaffolding completo é montado.
 
 ### 2. Validar e Executar o Grafo de Tarefas (DAG)
 ```bash

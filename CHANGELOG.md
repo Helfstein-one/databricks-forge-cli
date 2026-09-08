@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.6.2] - 2026-09-08
+
+### Added
+- **3D Cyberpunk Neon Banner & Terminal Animated Demo (`assets/terminal_demo.gif`)**:
+  - Upgraded ASCII banner to 3D Cyberpunk neon typography (`databricks_forge/ui/banner.py`) with electric cyan (`#00F0FF`), hot magenta (`#FF007F`), cyber gold, protocol 2077 divider, and zero 80-column line-wrapping.
+  - Added high-resolution 17-second animated macOS terminal demo GIF (`assets/terminal_demo.gif`) embedded in `README.md` highlighting help, scaffolding, topological DAG validation, and database connectors catalog.
+
+---
+
 ## [0.6.1] - 2026-09-08
 
 ### Changed
