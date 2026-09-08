@@ -1,4 +1,4 @@
-.PHONY: help install lint test unit-test integration-test perf-test docker-build docker-test run-local stream-run optimize dag-validate dag-run sql-run build deploy clean
+.PHONY: help install lint test unit-test integration-test perf-test docker-build docker-test run-local stream-run optimize iceberg-uniform data-convert dag-validate dag-run sql-run build deploy clean
 
 help:
 	@echo "Available commands for {{project_name}}:"
@@ -13,6 +13,8 @@ help:
 	@echo "  make run-local         Execute batch pipeline locally"
 	@echo "  make stream-run        Execute streaming micro-batch pipeline"
 	@echo "  make optimize          Run Delta Lake OPTIMIZE with Z-ORDER"
+	@echo "  make iceberg-uniform   Enable Delta UniForm for Apache Iceberg"
+	@echo "  make data-convert      Convert datasets between Parquet, CSV, JSON, and Delta"
 	@echo "  make dag-validate      Validate workflow.yaml DAG dependencies"
 	@echo "  make dag-run           Execute full multi-job DAG"
 	@echo "  make sql-run           Execute SQL transformation scripts"
@@ -53,6 +55,12 @@ stream-run:
 
 optimize:
 	forge tune optimize transactions_silver --zorder user_id,date
+
+iceberg-uniform:
+	forge iceberg enable-uniform transactions_silver
+
+data-convert:
+	forge data convert data_lake/transactions_bronze.parquet data_lake/transactions_silver --from parquet --to delta
 
 dag-validate:
 	forge dag validate --file workflow.yaml

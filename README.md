@@ -23,6 +23,8 @@ O **`databricks-forge-cli`** é a ferramenta definitiva de engenharia de dados m
 
 ### Principais Pilares:
 - 🎨 **CLI Visual & Interativa**: Banner ASCII estilizado (`DATABRICKS FORGE CLI`) e feedback rico no terminal via Rich.
+- 📁 **Suporte a Múltiplos Formatos de Arquivo**: Ingestão, conversão e escrita contínua entre **Parquet**, **ORC**, **Avro**, **CSV**, **JSON/JSONL** e **Delta Lake** (`forge data convert`, `read_dataset()`, `write_dataset()`).
+- 🧊 **Apache Iceberg & Delta UniForm**: Geração nativa de metadados Iceberg sobre tabelas Delta Lake sem duplicação de dados (`delta.universalFormat.enabledFormats = 'iceberg'`), permitindo leitura aberta em Trino, Snowflake, AWS Athena e DuckDB, além de suporte a time-travel.
 - ⚡ **Template Structured Streaming**: Ingestão contínua e micro-batch (`trigger(availableNow=True)`) com Delta Lake, watermarking de 10 minutos, janelas deslizantes/tumbling de 5 minutos e checkpoints tolerantes a falhas.
 - 🚀 **Tuning & Otimização de Performance**: Comandos `forge tune` para compactação de arquivos Delta (`OPTIMIZE`), clustering multidimensional (`ZORDER BY`), limpeza segura de snapshots (`VACUUM`) e perfis de Spark AQE (`balanced`, `write_heavy`, `read_heavy`).
 - 📊 **Logging Estruturado & Observabilidade**: Formatador JSON ISO 8601 para agregadores de logs (Datadog, CloudWatch), decorator de auditoria `@pipeline_audit_step` para medição automática de latência e contagem de linhas, e gravação em tabela Delta de auditoria (`pipeline_execution_audit`).
@@ -156,6 +158,40 @@ def process_customers(df):
 ```
 As métricas também podem ser persistidas na tabela Delta `pipeline_execution_audit`.
 
+### 9. Conversão & Inspeção Multi-Formato (`forge data`)
+Ingira e converta arquivos entre qualquer formato aberto:
+```bash
+# Inspeciona metadados, formato inferido e tamanho do arquivo ou diretório
+forge data inspect raw/transactions.parquet
+
+# Gera o plano de conversão direta de CSV para Delta Lake particionado
+forge data convert raw/events.csv data_lake/silver_events --from csv --to delta -p date,category
+```
+No código Python:
+```python
+from retail_lakehouse.formats import read_dataset, write_dataset
+
+# Lê automaticamente Parquet, ORC, Avro, CSV ou JSON
+df = read_dataset(spark, "raw/events.avro")
+
+# Salva em Delta Lake com particionamento
+write_dataset(df, "silver_events", format="delta", partition_by=["date"])
+```
+
+### 10. Tabelas Apache Iceberg & Delta UniForm (`forge iceberg`)
+Habilite interoperabilidade aberta gerando metadados Apache Iceberg em tabelas Delta Lake sem custos de duplicação:
+```bash
+# Ativa Delta UniForm Iceberg na tabela Silver
+forge iceberg enable-uniform transactions_silver
+
+# Inspeciona caminhos de metadados Iceberg e motores compatíveis (Trino, Athena, Snowflake)
+forge iceberg inspect transactions_silver
+
+# Gera query para inspeção de histórico de snapshots para time-travel
+forge iceberg snapshots transactions_silver
+```
+No Databricks CE, execute o notebook `notebooks/run_multiformat_notebook.py` para visualizar a ingestão heterogênea e ativação do UniForm em tempo real.
+
 ---
 
 ## 🧰 Referência Completa de Comandos
@@ -163,11 +199,24 @@ As métricas também podem ser persistidas na tabela Delta `pipeline_execution_a
 ### Comandos Centrais
 | Comando | Descrição |
 |---|---|
-| `forge init <name>` | Gera novo projeto Lakehouse com DAG, Docker, Chispa, Streaming e CI/CD |
+| `forge init <name>` | Gera novo projeto Lakehouse com DAG, Docker, Chispa, Streaming, Formatos e CI/CD |
 | `forge build` | Compila o pacote `.whl` do projeto |
 | `forge deploy` | Envia Wheel, SQLs e Master DAG Runner para o Databricks Workspace |
 | `forge check` | Diagnóstico de pré-requisitos (Python, Java, Docker, Databricks API) |
 | `forge run-notebook` | Gera URL direta e guia de execução para o notebook no Databricks CE |
+
+### Multi-Formatos (`forge data`)
+| Comando | Descrição |
+|---|---|
+| `forge data convert <src> <tgt>` | Converte datasets entre Parquet, ORC, Avro, CSV, JSON e Delta |
+| `forge data inspect <path>` | Inspeciona formato inferido, tamanho e presença de Delta log |
+
+### Apache Iceberg (`forge iceberg`)
+| Comando | Descrição |
+|---|---|
+| `forge iceberg enable-uniform <table>` | Ativa Delta UniForm para geração de metadados Apache Iceberg |
+| `forge iceberg inspect <table>` | Inspeciona metadados Iceberg e motores externos compatíveis |
+| `forge iceberg snapshots <table>` | Gera query para histórico de commits e snapshots Iceberg |
 
 ### Tuning & Otimização (`forge tune`)
 | Comando | Descrição |

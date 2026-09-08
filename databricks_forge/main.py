@@ -29,6 +29,17 @@ from databricks_forge.core.sql import (
     deploy_sql_to_workspace,
     execute_sql_locally,
 )
+from databricks_forge.core.formats import (
+    SUPPORTED_FORMATS,
+    build_convert_plan,
+    detect_format_from_path,
+)
+from databricks_forge.core.iceberg import (
+    build_create_uniform_table_statement,
+    build_enable_uniform_statements,
+    build_iceberg_snapshots_query,
+    inspect_iceberg_plan,
+)
 from databricks_forge.core.secrets import (
     DatabricksSecretsClient,
     load_dotenv_file,
@@ -65,12 +76,16 @@ dag_app = typer.Typer(name="dag", help="🌐 Multi-job DAG orchestration and dep
 compute_app = typer.Typer(name="compute", help="💻 Machine types and cluster compute catalogs.")
 secret_app = typer.Typer(name="secret", help="🔒 Databricks Secrets and environment variables management.")
 tune_app = typer.Typer(name="tune", help="⚡ Spark & Delta Lake performance tuning.")
+data_app = typer.Typer(name="data", help="📁 Multi-format dataset inspection and conversion (Parquet, ORC, Avro, CSV, JSON, Delta).")
+iceberg_app = typer.Typer(name="iceberg", help="🧊 Apache Iceberg tables and Delta UniForm compatibility.")
 
 app.add_typer(sql_app)
 app.add_typer(dag_app)
 app.add_typer(compute_app)
 app.add_typer(secret_app)
 app.add_typer(tune_app)
+app.add_typer(data_app)
+app.add_typer(iceberg_app)
 
 console = Console()
 
@@ -191,11 +206,13 @@ def init(
 
         table.add_row("Core Lakehouse", f"src/{slug}/ (session.py, catalog.py, pipelines, entrypoint.py)")
         table.add_row("Streaming Engine", f"src/{slug}/pipelines/streaming_pipeline.py, notebooks/run_streaming_notebook.py")
+        table.add_row("Multi-Format I/O", f"src/{slug}/formats.py (Parquet, ORC, Avro, CSV, JSON, Delta)")
+        table.add_row("Apache Iceberg", f"src/{slug}/iceberg.py, sql/04_iceberg_uniform.sql (Delta UniForm)")
         table.add_row("Performance Tuning", f"src/{slug}/tuning.py (AQE, OPTIMIZE, Z-ORDER, VACUUM)")
         table.add_row("Structured Logging", f"src/{slug}/logging.py (JSON Telemetry, @pipeline_audit_step)")
         table.add_row("SQL Jobs", "sql/01_clean_transactions.sql, sql/02_gold_metrics.sql")
         table.add_row("DAG Orchestration", "workflow.yaml, notebooks/master_dag_runner.py")
-        table.add_row("CE Notebooks", "notebooks/run_pipeline_notebook.py (Interactive Widgets)")
+        table.add_row("CE Notebooks", "notebooks/run_pipeline_notebook.py, notebooks/run_multiformat_notebook.py")
         table.add_row("Docker Dev", "docker/Dockerfile, docker/docker-compose.yml (PySpark 3.5 + Delta 3.0)")
         table.add_row("Test Suite", "tests/unit/ (Chispa), tests/integration/, tests/performance/")
         table.add_row("CI/CD Pipeline", ".github/workflows/ci.yml, .github/workflows/cd.yml")
@@ -205,9 +222,10 @@ def init(
         console.print(f"\n[bold green]✔ Successfully created {len(files)} files in {target_path}[/bold green]")
         console.print("\n[bold yellow]Quick Commands:[/bold yellow]")
         console.print(f"  • [cyan]cd {target_path}[/cyan]")
+        console.print("  • [cyan]forge iceberg enable-uniform <table_name>[/cyan] (Enable Iceberg metadata)")
+        console.print("  • [cyan]forge data convert <src> <dst> --to delta[/cyan]  (Multi-format conversion)")
         console.print("  • [cyan]forge tune config[/cyan] (Inspect Spark AQE & Delta Lake performance presets)")
         console.print("  • [cyan]make dag-validate[/cyan] (Validate workflow.yaml dependency graph)")
-        console.print("  • [cyan]make sql-run[/cyan]      (Execute SQL transformations)")
         console.print("  • [cyan]make docker-test[/cyan]  (Run unit tests in Docker container)")
         console.print("  • [cyan]forge build[/cyan] && [cyan]forge deploy[/cyan]")
 
@@ -812,6 +830,131 @@ def tune_config_cmd(
         table.add_row(k, v, desc)
 
     console.print(table)
+
+
+# =========================================================================
+# MULTI-FORMAT DATA CONVERSION & INSPECTION
+# =========================================================================
+
+@data_app.command(name="convert")
+def data_convert_cmd(
+    source: str = typer.Argument(..., help="Source dataset file path or catalog table (e.g. data/events.csv)."),
+    target: str = typer.Argument(..., help="Destination dataset path or catalog table (e.g. data/events_silver)."),
+    from_format: Optional[str] = typer.Option(None, "--from", "-f", help="Explicit source format (parquet, orc, avro, csv, json, delta, iceberg)."),
+    to_format: str = typer.Option("delta", "--to", "-t", help="Target format (default: delta)."),
+    partition_by: Optional[str] = typer.Option(None, "--partition-by", "-p", help="Comma-separated partition column names."),
+):
+    """📁 Convert datasets between file formats (Parquet, ORC, Avro, CSV, JSON, Delta)."""
+    partition_cols = [c.strip() for c in partition_by.split(",") if c.strip()] if partition_by else None
+    try:
+        plan = build_convert_plan(
+            source=source,
+            target=target,
+            from_format=from_format,
+            to_format=to_format,
+            partition_by=partition_cols,
+        )
+        console.print(Panel(
+            f"[bold cyan]Source:[/bold cyan]        [white]{plan['source']}[/white] ([magenta]{plan['source_format'].upper()}[/magenta])\n"
+            f"[bold cyan]Destination:[/bold cyan]   [white]{plan['target']}[/white] ([green]{plan['target_format'].upper()}[/green])\n"
+            f"[bold cyan]Partition By:[/bold cyan]  [yellow]{', '.join(plan['partition_by']) if plan['partition_by'] else 'None'}[/yellow]\n\n"
+            f"[bold white]Execution Code:[/bold white]\n"
+            f"[yellow]{plan['command_preview']}[/yellow]",
+            title="📁 Multi-Format Conversion Plan",
+            border_style="cyan",
+        ))
+        console.print("[dim]Run in Python or Databricks via: [cyan]from <project>.formats import convert_dataset; convert_dataset(...)[/cyan][/dim]")
+    except Exception as exc:
+        console.print(f"[bold red]Format conversion error:[/bold red] {exc}")
+        raise typer.Exit(code=1)
+
+
+@data_app.command(name="inspect")
+def data_inspect_cmd(
+    path_or_table: str = typer.Argument(..., help="File path, directory, or table to inspect."),
+):
+    """🔍 Inspect format and metadata of a file or directory dataset."""
+    inferred_format = detect_format_from_path(path_or_table)
+    file_path = Path(path_or_table)
+
+    table = Table(title=f"Dataset Inspection: {path_or_table}", show_header=True)
+    table.add_column("Property", style="cyan")
+    table.add_column("Value", style="green")
+
+    table.add_row("Inferred Format", inferred_format.upper())
+    table.add_row("Exists Locally", "Yes" if file_path.exists() else "No (or remote URI)")
+    if file_path.exists():
+        if file_path.is_file():
+            size_kb = file_path.stat().st_size / 1024.0
+            table.add_row("Type", "Single File")
+            table.add_row("Size", f"{size_kb:.2f} KB")
+        elif file_path.is_dir():
+            files = list(file_path.rglob("*"))
+            data_files = [f for f in files if f.is_file() and not f.name.startswith(".")]
+            total_bytes = sum(f.stat().st_size for f in data_files)
+            table.add_row("Type", "Directory / Partitioned Table")
+            table.add_row("Data Files Count", str(len(data_files)))
+            table.add_row("Total Size", f"{total_bytes / (1024 * 1024):.2f} MB")
+            has_delta = any("_delta_log" in str(p) for p in files)
+            table.add_row("Has Delta Log", "Yes" if has_delta else "No")
+
+    console.print(table)
+
+
+# =========================================================================
+# APACHE ICEBERG & DELTA UNIFORM
+# =========================================================================
+
+@iceberg_app.command(name="enable-uniform")
+def iceberg_enable_uniform_cmd(
+    table_name: str = typer.Argument(..., help="Delta table identifier (e.g. 'transactions_silver') or path."),
+):
+    """🧊 Enable Delta UniForm (Iceberg compatibility) on a Delta Lake table."""
+    stmts = build_enable_uniform_statements(table_name)
+
+    console.print(Panel(
+        f"[bold cyan]Target Table:[/bold cyan] [bold green]{table_name}[/bold green]\n"
+        f"[bold cyan]Universal Format:[/bold cyan] [magenta]Apache Iceberg[/magenta]\n"
+        f"[bold cyan]Column Mapping:[/bold cyan]   [yellow]name[/yellow]\n\n"
+        f"[bold white]Required SQL DDL Statements:[/bold white]\n"
+        + "\n".join(f"[yellow]{s};[/yellow]" for s in stmts),
+        title="🧊 Delta UniForm (Apache Iceberg) Configuration",
+        border_style="cyan",
+    ))
+    console.print("[dim]Execute via: [cyan]forge sql run <file.sql>[/cyan] or in a Databricks Notebook cell.[/dim]")
+
+
+@iceberg_app.command(name="inspect")
+def iceberg_inspect_cmd(
+    table_name: str = typer.Argument(..., help="Iceberg table identifier or path."),
+):
+    """🔍 Inspect Apache Iceberg metadata paths and external engine compatibility."""
+    plan = inspect_iceberg_plan(table_name)
+
+    console.print(Panel(
+        f"[bold cyan]Target Table:[/bold cyan]         [bold green]{plan['table']}[/bold green]\n"
+        f"[bold cyan]Metadata Path Pattern:[/bold cyan] [white]{plan['iceberg_metadata_path']}[/white]\n\n"
+        f"[bold cyan]Supported External Query Engines:[/bold cyan]\n"
+        + "\n".join(f"  • {eng}" for eng in plan['supported_external_engines']),
+        title="🧊 Apache Iceberg Table Inspection",
+        border_style="cyan",
+    ))
+
+
+@iceberg_app.command(name="snapshots")
+def iceberg_snapshots_cmd(
+    table_name: str = typer.Argument(..., help="Iceberg table identifier."),
+):
+    """📜 Display SQL query to inspect historical commits and snapshots of an Iceberg table."""
+    query = build_iceberg_snapshots_query(table_name)
+    console.print(Panel(
+        f"[bold cyan]Table:[/bold cyan] [bold green]{table_name}[/bold green]\n\n"
+        f"[bold white]Snapshots & History Query:[/bold white]\n"
+        f"[yellow]{query};[/yellow]\n\n"
+        f"[dim]Run this query in Databricks SQL or Spark to inspect commit history and snapshot IDs for time-travel.[/dim]",
+        title="📜 Iceberg Snapshots & Commit History",
+        border_style="magenta",
+    ))
 
 
 # =========================================================================

@@ -60,3 +60,11 @@ tasks:
       - "streaming_microbatch_notebook"
     file: "sql/03_optimize_tables.sql"
 
+  - name: "enable_iceberg_uniform"
+    type: "sql"
+    description: "Generates Apache Iceberg UniForm metadata for open query engine interop"
+    depends_on:
+      - "optimize_silver_table"
+    file: "sql/04_iceberg_uniform.sql"
+
+

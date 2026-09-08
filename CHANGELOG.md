@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.4.0] - 2026-09-07
+
+### Added
+- **Multi-Format Data Engine (Parquet, ORC, Avro, CSV, JSON, Delta)**:
+  - `databricks_forge.core.formats`: Core format detection, conversion planner, and CLI backend.
+  - `src/{{project_slug}}/formats.py`: Robust data abstraction functions:
+    - `read_dataset(spark, path_or_table, format='auto', options=...)`: Ingests files or catalog tables with format auto-detection and permissive error modes.
+    - `write_dataset(df, path_or_table, format='delta', mode='overwrite', partition_by=...)`: Persists data in any supported open format.
+    - `convert_dataset(spark, source, target, from_format, to_format, ...)`: Direct file-to-file and table-to-table conversion pipeline.
+  - CLI commands under `forge data`:
+    - `forge data convert <source> <target> [--from <fmt>] [--to <fmt>] [--partition-by <cols>]`: Generates conversion execution plan.
+    - `forge data inspect <path_or_table>`: Inspects inferred format, file size, partition count, and Delta log presence.
+- **Apache Iceberg & Delta UniForm (Universal Format) Integration**:
+  - `databricks_forge.core.iceberg`: Iceberg DDL generator, UniForm property enabler, and snapshot history query builder.
+  - `src/{{project_slug}}/iceberg.py`:
+    - `enable_delta_uniform(spark, table_name)`: Activates Delta UniForm Iceberg metadata generation with `delta.columnMapping.mode = 'name'`.
+    - `read_iceberg_table(spark, table, as_of_snapshot_id=..., as_of_timestamp=...)`: Reads Iceberg tables with point-in-time time travel.
+    - `write_iceberg_table(df, table_name, mode=...)`: Persists native Apache Iceberg tables.
+    - `inspect_iceberg_metadata(spark, table_name)`: Queries recent Iceberg table snapshots and commit IDs.
+  - `notebooks/run_multiformat_notebook.py`: Interactive Databricks CE runner demonstrating heterogeneous ingestion (CSV, JSON, Parquet, Avro) -> Delta Lake -> UniForm Iceberg compatibility.
+  - `sql/04_iceberg_uniform.sql`: Declarative SQL script activating UniForm on Silver and Gold tables.
+  - CLI commands under `forge iceberg`:
+    - `forge iceberg enable-uniform <table_name>`: Generates `ALTER TABLE ... SET TBLPROPERTIES` and `OPTIMIZE` commands.
+    - `forge iceberg inspect <table_name>`: Inspects metadata paths and compatibility with external query engines (Trino, Snowflake, AWS Athena, DuckDB, Presto).
+    - `forge iceberg snapshots <table_name>`: Generates snapshot history query for time-travel.
+- **Template & Makefile Enhancements**:
+  - `workflow.yaml.jinja`: Added `enable_iceberg_uniform` task referencing `sql/04_iceberg_uniform.sql`.
+  - `Makefile`: Added `make iceberg-uniform` and `make data-convert` targets.
+
+---
+
 ## [0.3.0] - 2026-09-07
 
 ### Added
