@@ -1,0 +1,44 @@
+name: "{{project_slug}}_dag"
+description: "Multi-job Medallion Lakehouse DAG orchestrated by Databricks Forge CLI"
+
+# Compute and machine specifications
+compute:
+  cloud: "{{cloud}}"
+  node_type_id: "{{node_type_id}}"
+  spark_version: "{{spark_version}}"
+  single_node: {{single_node | lower}}
+  num_workers: {{num_workers}}
+
+# Multi-task Directed Acyclic Graph (DAG)
+tasks:
+  - name: "ingest_bronze_wheel"
+    type: "python_wheel"
+    description: "Ingests raw transactions into bronze layer via wheel"
+    entrypoint: "{{project_slug}}.entrypoint:main"
+    parameters:
+      mode: "local"
+      rows: 1000
+
+  - name: "clean_silver_sql"
+    type: "sql"
+    description: "Cleans and transforms raw records into silver tables using SQL"
+    depends_on:
+      - "ingest_bronze_wheel"
+    file: "sql/01_clean_transactions.sql"
+
+  - name: "aggregate_gold_sql"
+    type: "sql"
+    description: "Computes daily customer aggregations in gold layer using SQL"
+    depends_on:
+      - "clean_silver_sql"
+    file: "sql/02_gold_metrics.sql"
+
+  - name: "analytics_dashboard_notebook"
+    type: "notebook"
+    description: "Interactive analytics reporting notebook"
+    depends_on:
+      - "aggregate_gold_sql"
+    path: "notebooks/run_pipeline_notebook.py"
+    parameters:
+      row_count: "1000"
+      log_level: "INFO"

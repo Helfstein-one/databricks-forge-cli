@@ -1,204 +1,265 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1450 780" width="100%" height="100%" style="background:#0b0f19; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1560 920" width="100%" height="100%" style="background:#090d16; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
   <defs>
-    <linearGradient id="gradHeader" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#3b82f6" />
-      <stop offset="50%" stop-color="#8b5cf6" />
-      <stop offset="100%" stop-color="#ec4899" />
+    <!-- Gradients -->
+    <linearGradient id="titleGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FF3621" />
+      <stop offset="50%" stop-color="#FF7A00" />
+      <stop offset="100%" stop-color="#38BDF8" />
     </linearGradient>
-    <linearGradient id="cardBg1" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#161e2e" />
-      <stop offset="100%" stop-color="#0f172a" />
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#151d2f" />
+      <stop offset="100%" stop-color="#0d1424" />
     </linearGradient>
-    <linearGradient id="blueGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#2563eb" />
-      <stop offset="100%" stop-color="#1d4ed8" />
+    <linearGradient id="dbxRed" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF3621" />
+      <stop offset="100%" stop-color="#B91C1C" />
     </linearGradient>
-    <linearGradient id="emeraldGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#059669" />
-      <stop offset="100%" stop-color="#047857" />
+    <linearGradient id="deltaBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00ADEF" />
+      <stop offset="100%" stop-color="#0284C7" />
     </linearGradient>
-    <linearGradient id="orangeGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ea580c" />
-      <stop offset="100%" stop-color="#c2410c" />
+    <linearGradient id="secretGreen" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10B981" />
+      <stop offset="100%" stop-color="#059669" />
     </linearGradient>
-    <filter id="dropShadow" x="-10%" y="-10%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="8" stdDeviation="6" flood-color="#000000" flood-opacity="0.4" />
+
+    <!-- Filters -->
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="10" stdDeviation="8" flood-color="#000000" flood-opacity="0.5" />
     </filter>
-    <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-      <polygon points="0 0, 8 3, 0 6" fill="#60a5fa" />
+
+    <!-- Markers -->
+    <marker id="arrowBlue" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#38bdf8" />
+    </marker>
+    <marker id="arrowRed" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#FF3621" />
     </marker>
     <marker id="arrowGreen" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-      <polygon points="0 0, 8 3, 0 6" fill="#34d399" />
-    </marker>
-    <marker id="arrowOrange" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-      <polygon points="0 0, 8 3, 0 6" fill="#fb923c" />
+      <polygon points="0 0, 8 3, 0 6" fill="#10B981" />
     </marker>
   </defs>
 
-  <!-- Title & Subtitle -->
-  <text x="725" y="45" text-anchor="middle" font-size="28" font-weight="800" fill="url(#gradHeader)" letter-spacing="0.5">
-    DATABRICKS FORGE CLI — ARCHITECTURAL BLUEPRINT
-  </text>
-  <text x="725" y="75" text-anchor="middle" font-size="14" fill="#94a3b8">
-    Hybrid Triad Execution: Local Docker / Delta Lake · Databricks Connect v2 · Remote CE Workspace API
-  </text>
-
-  <!-- ==================== COLUMN 1: LOCAL ENVIRONMENT ==================== -->
-  <rect x="50" y="105" width="410" height="630" rx="16" fill="url(#cardBg1)" stroke="#1e3a8a" stroke-width="2" filter="url(#dropShadow)" />
-  <rect x="50" y="105" width="410" height="42" rx="16" fill="#1e3a8a" />
-  <rect x="50" y="130" width="410" height="17" fill="#1e3a8a" />
-  <text x="75" y="132" font-size="15" font-weight="700" fill="#ffffff">1. LOCAL DEVELOPER WORKSTATION</text>
-
-  <!-- Node: CLI -->
-  <g transform="translate(75, 165)">
-    <rect width="360" height="70" rx="10" fill="#1e293b" stroke="#3b82f6" stroke-width="1.5" />
-    <text x="20" y="28" font-size="14" font-weight="700" fill="#60a5fa">⚡ Databricks Forge CLI</text>
-    <text x="20" y="50" font-size="11" fill="#cbd5e1"><tspan fill="#38bdf8">forge init</tspan> · <tspan fill="#38bdf8">forge build</tspan> · <tspan fill="#38bdf8">forge deploy</tspan> · <tspan fill="#38bdf8">forge check</tspan></text>
+  <!-- ==================== HEADER BANNER ==================== -->
+  <g transform="translate(80, 25)">
+    <!-- Official Databricks Logo Icon -->
+    <g transform="translate(0, 5) scale(0.65)">
+      <path d="M24 0 L48 13.8 L24 27.6 L0 13.8 Z" fill="#FF3621" />
+      <path d="M24 14.5 L48 28.3 L24 42.1 L0 28.3 Z" fill="#FF5238" />
+      <path d="M24 29 L48 42.8 L24 56.6 L0 42.8 Z" fill="#FF3621" />
+      <path d="M24 43.5 L48 57.3 L24 71.1 L0 57.3 Z" fill="#D82713" />
+    </g>
+    <text x="45" y="32" font-size="28" font-weight="900" fill="url(#titleGrad)" letter-spacing="1">DATABRICKS FORGE CLI</text>
+    <text x="45" y="55" font-size="13" fill="#94a3b8">Production Architecture: Multi-Job DAG Orchestration · Secrets Engine · Hybrid Compute · Databricks CE</text>
   </g>
 
-  <!-- Node: Scaffolding Structure -->
-  <g transform="translate(75, 250)">
-    <rect width="360" height="110" rx="10" fill="#1e293b" stroke="#475569" stroke-width="1" />
-    <text x="20" y="24" font-size="13" font-weight="700" fill="#f8fafc">📦 Scaffolded Lakehouse Architecture</text>
-    <text x="20" y="46" font-size="11" fill="#94a3b8">• <tspan fill="#f1f5f9" font-weight="600">session.py</tspan>: SparkSession Factory (Local Delta vs Connect)</text>
-    <text x="20" y="66" font-size="11" fill="#94a3b8">• <tspan fill="#f1f5f9" font-weight="600">catalog.py</tspan>: CatalogManager (Filesystem vs Metastore)</text>
-    <text x="20" y="86" font-size="11" fill="#94a3b8">• <tspan fill="#f1f5f9" font-weight="600">pipelines/</tspan>: Medallion Architecture (Bronze/Silver/Gold)</text>
-    <text x="20" y="104" font-size="11" fill="#94a3b8">• <tspan fill="#f1f5f9" font-weight="600">notebooks/</tspan>: CE Workspace Runner Notebook</text>
+  <!-- ==================== COLUMN 1: LOCAL WORKSTATION ==================== -->
+  <rect x="50" y="100" width="450" height="780" rx="16" fill="url(#cardGrad)" stroke="#1e3a8a" stroke-width="2" filter="url(#shadow)" />
+  <rect x="50" y="100" width="450" height="42" rx="16" fill="#1e3a8a" />
+  <rect x="50" y="125" width="450" height="17" fill="#1e3a8a" />
+  <text x="75" y="127" font-size="14" font-weight="800" fill="#ffffff">1. LOCAL DEVELOPER WORKSTATION</text>
+
+  <!-- CLI Entrypoint -->
+  <g transform="translate(75, 155)">
+    <rect width="400" height="65" rx="10" fill="#1e293b" stroke="#3b82f6" stroke-width="1.5" />
+    <text x="20" y="26" font-size="14" font-weight="800" fill="#60a5fa">⚡ forge CLI Engine</text>
+    <text x="20" y="48" font-size="11" fill="#94a3b8"><tspan fill="#38bdf8">forge init</tspan> · <tspan fill="#38bdf8">forge build</tspan> · <tspan fill="#38bdf8">forge deploy</tspan> · <tspan fill="#38bdf8">forge dag</tspan> · <tspan fill="#38bdf8">forge secret</tspan></text>
   </g>
 
-  <!-- Node: Docker Dev -->
-  <g transform="translate(75, 375)">
-    <rect width="360" height="80" rx="10" fill="#1e293b" stroke="#f59e0b" stroke-width="1.2" />
-    <text x="20" y="24" font-size="13" font-weight="700" fill="#fbbf24">🐳 Docker Lakehouse Container</text>
-    <text x="20" y="46" font-size="11" fill="#94a3b8">• Debian Bullseye + OpenJDK 11 + PySpark 3.5.0 + Delta 3.0</text>
-    <text x="20" y="66" font-size="11" fill="#94a3b8">• Volume: <tspan fill="#fde68a">local_data_lake</tspan> for full local ACID transaction testing</text>
+  <!-- Secrets & Environment Management -->
+  <g transform="translate(75, 235)">
+    <rect width="400" height="90" rx="10" fill="#1e293b" stroke="#10b981" stroke-width="1.2" />
+    <!-- Lock Icon -->
+    <path d="M22 20 h16 v18 h-16 z M25 20 v-5 a5 5 0 0 1 10 0 v5" fill="none" stroke="#10b981" stroke-width="2" />
+    <text x="48" y="27" font-size="13" font-weight="700" fill="#34d399">Secrets &amp; .env Management (core/secrets.py)</text>
+    <text x="20" y="52" font-size="11" fill="#cbd5e1">• Local <tspan fill="#a7f3d0">.env</tspan> parsed securely &amp; injected into runtime</text>
+    <text x="20" y="72" font-size="11" fill="#cbd5e1">• CLI command: <tspan fill="#34d399" font-weight="600">forge secret sync-env</tspan> (syncs to Databricks Scope)</text>
   </g>
 
-  <!-- Node: Test Suite -->
-  <g transform="translate(75, 470)">
-    <rect width="360" height="80" rx="10" fill="#1e293b" stroke="#10b981" stroke-width="1.2" />
-    <text x="20" y="24" font-size="13" font-weight="700" fill="#34d399">🧪 Comprehensive Test Suite</text>
-    <text x="20" y="46" font-size="11" fill="#94a3b8">• <tspan fill="#a7f3d0">Unit Tests</tspan>: Chispa (assert_df_equality schema &amp; data)</text>
-    <text x="20" y="66" font-size="11" fill="#94a3b8">• <tspan fill="#a7f3d0">Integration &amp; Perf</tspan>: Catalog persistence &amp; pytest-benchmark</text>
+  <!-- Machine & Compute Profiles -->
+  <g transform="translate(75, 340)">
+    <rect width="400" height="95" rx="10" fill="#1e293b" stroke="#f59e0b" stroke-width="1.2" />
+    <text x="20" y="24" font-size="13" font-weight="700" fill="#fbbf24">💻 Machine &amp; Compute Profiles (core/compute.py)</text>
+    <text x="20" y="46" font-size="11" fill="#cbd5e1">• <tspan fill="#fde68a">AWS</tspan>: i3.xlarge (NVMe), m5d.large, c5.xlarge</text>
+    <text x="20" y="66" font-size="11" fill="#cbd5e1">• <tspan fill="#fde68a">Azure</tspan>: Standard_DS3_v2, D4s_v5 · <tspan fill="#fde68a">GCP</tspan>: n1-standard-4</text>
+    <text x="20" y="86" font-size="11" fill="#cbd5e1">• <tspan fill="#fde68a">CE</tspan>: SingleNode (Driver-only, 0 workers, zero cost)</text>
   </g>
 
-  <!-- Node: Remote Connect -->
-  <g transform="translate(75, 565)">
-    <rect width="360" height="70" rx="10" fill="#1e293b" stroke="#8b5cf6" stroke-width="1.2" />
-    <text x="20" y="24" font-size="13" font-weight="700" fill="#c084fc">🔌 Databricks Connect v2 Mode</text>
-    <text x="20" y="48" font-size="11" fill="#94a3b8">EXECUTION_MODE=remote → Connects local IDE to CE cluster</text>
+  <!-- Docker Environment -->
+  <g transform="translate(75, 450)">
+    <rect width="400" height="85" rx="10" fill="#1e293b" stroke="#2496ed" stroke-width="1.2" />
+    <text x="20" y="24" font-size="13" font-weight="700" fill="#60a5fa">🐳 Containerized Lakehouse (Docker / Podman)</text>
+    <text x="20" y="46" font-size="11" fill="#94a3b8">• OpenJDK 11 + PySpark 3.5.0 + Delta Lake 3.0.0</text>
+    <text x="20" y="68" font-size="11" fill="#94a3b8">• Volume: <tspan fill="#93c5fd">local_data_lake</tspan> (ACID storage outside cloud)</text>
   </g>
 
-  <!-- Node: Wheel -->
-  <g transform="translate(75, 650)">
-    <rect width="360" height="60" rx="10" fill="url(#orangeGlow)" filter="url(#dropShadow)" />
-    <text x="180" y="28" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">📦 Compiled Wheel Binary</text>
-    <text x="180" y="48" text-anchor="middle" font-size="11" fill="#ffedd5">dist/{{project_slug}}-0.1.0-py3-none-any.whl</text>
+  <!-- Testing Suite (Chispa) -->
+  <g transform="translate(75, 550)">
+    <rect width="400" height="75" rx="10" fill="#1e293b" stroke="#8b5cf6" stroke-width="1.2" />
+    <text x="20" y="24" font-size="13" font-weight="700" fill="#c084fc">🧪 Chispa Unit &amp; Benchmark Tests</text>
+    <text x="20" y="46" font-size="11" fill="#94a3b8">• <tspan fill="#ddd6fe">assert_df_equality</tspan>: Exact schema &amp; content testing</text>
+    <text x="20" y="64" font-size="11" fill="#94a3b8">• <tspan fill="#ddd6fe">pytest-benchmark</tspan>: Pipeline throughput profiling</text>
   </g>
 
-  <!-- ==================== COLUMN 2: GITHUB ACTIONS ==================== -->
-  <rect x="520" y="105" width="410" height="630" rx="16" fill="url(#cardBg1)" stroke="#065f46" stroke-width="2" filter="url(#dropShadow)" />
-  <rect x="520" y="105" width="410" height="42" rx="16" fill="#065f46" />
-  <rect x="520" y="130" width="410" height="17" fill="#065f46" />
-  <text x="545" y="132" font-size="15" font-weight="700" fill="#ffffff">2. GITHUB ACTIONS CI/CD ESTEIRA</text>
-
-  <!-- CI Pipeline -->
-  <g transform="translate(545, 170)">
-    <rect width="360" height="170" rx="10" fill="#1e293b" stroke="#10b981" stroke-width="1.5" />
-    <text x="20" y="26" font-size="14" font-weight="700" fill="#34d399">⚙️ CI Pipeline (.github/workflows/ci.yml)</text>
-    <text x="20" y="52" font-size="11" fill="#94a3b8">1. <tspan fill="#f1f5f9">Lint &amp; Formatting</tspan>: Ruff check &amp; format check</text>
-    <text x="20" y="74" font-size="11" fill="#94a3b8">2. <tspan fill="#f1f5f9">PySpark Setup</tspan>: OpenJDK 11 + Python 3.11</text>
-    <text x="20" y="96" font-size="11" fill="#94a3b8">3. <tspan fill="#f1f5f9">Chispa Assertions</tspan>: DataFrame transformation tests</text>
-    <text x="20" y="118" font-size="11" fill="#94a3b8">4. <tspan fill="#f1f5f9">Performance Benchmarks</tspan>: Volumetry thresholds</text>
-    <text x="20" y="140" font-size="11" fill="#94a3b8">5. <tspan fill="#f1f5f9">Wheel Packaging</tspan>: build --wheel &amp; artifact upload</text>
+  <!-- Wheel Packaging -->
+  <g transform="translate(75, 640)">
+    <rect width="400" height="60" rx="10" fill="#1e293b" stroke="#ea580c" stroke-width="1.2" />
+    <text x="20" y="24" font-size="13" font-weight="700" fill="#fb923c">📦 Package Distribution (.whl)</text>
+    <text x="20" y="46" font-size="11" fill="#cbd5e1">Compiled to dist/{{project_slug}}-0.1.0-py3-none-any.whl</text>
   </g>
 
-  <!-- Trigger Node -->
-  <g transform="translate(625, 375)">
-    <rect width="200" height="50" rx="8" fill="#334155" stroke="#64748b" stroke-width="1.2" />
-    <text x="100" y="24" text-anchor="middle" font-size="12" font-weight="700" fill="#f8fafc">Push to 'main'</text>
-    <text x="100" y="40" text-anchor="middle" font-size="10" fill="#94a3b8">Merge Approval</text>
+  <!-- Databricks Connect v2 -->
+  <g transform="translate(75, 715)">
+    <rect width="400" height="60" rx="10" fill="#1e293b" stroke="#ec4899" stroke-width="1.2" />
+    <text x="20" y="24" font-size="13" font-weight="700" fill="#f472b6">🔌 Databricks Connect v2 Hybrid Link</text>
+    <text x="20" y="46" font-size="11" fill="#cbd5e1">EXECUTION_MODE=remote → Local IDE direct to CE Cluster</text>
   </g>
 
-  <!-- CD Pipeline -->
-  <g transform="translate(545, 455)">
-    <rect width="360" height="180" rx="10" fill="#1e293b" stroke="#3b82f6" stroke-width="1.5" />
-    <text x="20" y="26" font-size="14" font-weight="700" fill="#60a5fa">🚀 CD Pipeline (.github/workflows/cd.yml)</text>
-    <text x="20" y="52" font-size="11" fill="#94a3b8">• GitHub Secrets Injected:</text>
-    <text x="35" y="72" font-size="11" fill="#93c5fd">DATABRICKS_HOST, DATABRICKS_TOKEN</text>
-    <text x="20" y="96" font-size="11" fill="#94a3b8">• Automated Execution: <tspan fill="#60a5fa" font-weight="600">forge deploy</tspan></text>
-    <text x="20" y="118" font-size="11" fill="#94a3b8">• Compiles .whl and imports to Workspace API</text>
-    <text x="20" y="140" font-size="11" fill="#94a3b8">• Syncs runner notebook with parameter widgets</text>
-    <text x="20" y="162" font-size="11" fill="#34d399">✔ Zero downtime artifact versioning</text>
+  <!-- ==================== COLUMN 2: CI/CD & WORKFLOW ==================== -->
+  <rect x="555" y="100" width="450" height="780" rx="16" fill="url(#cardGrad)" stroke="#065f46" stroke-width="2" filter="url(#shadow)" />
+  <rect x="555" y="100" width="450" height="42" rx="16" fill="#065f46" />
+  <rect x="555" y="125" width="450" height="17" fill="#065f46" />
+  <text x="580" y="127" font-size="14" font-weight="800" fill="#ffffff">2. MULTI-JOB DAG &amp; GITHUB ACTIONS CI/CD</text>
+
+  <!-- DAG Orchestration Spec -->
+  <g transform="translate(580, 155)">
+    <rect width="400" height="235" rx="10" fill="#1e293b" stroke="#34d399" stroke-width="1.5" />
+    <text x="20" y="26" font-size="14" font-weight="800" fill="#34d399">🌐 Multi-Job DAG Orchestration (workflow.yaml)</text>
+    
+    <!-- Step 1 -->
+    <g transform="translate(20, 45)">
+      <rect width="360" height="36" rx="6" fill="#0f172a" stroke="#3b82f6" stroke-width="1" />
+      <text x="12" y="22" font-size="11" font-weight="700" fill="#60a5fa">Task 1: ingest_bronze_wheel (Python Wheel)</text>
+    </g>
+    <!-- Arrow down -->
+    <path d="M 200 83 L 200 93" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrowBlue)" />
+
+    <!-- Step 2 -->
+    <g transform="translate(20, 95)">
+      <rect width="360" height="36" rx="6" fill="#0f172a" stroke="#f59e0b" stroke-width="1" />
+      <text x="12" y="22" font-size="11" font-weight="700" fill="#fbbf24">Task 2: clean_silver_sql (SQL Transformation)</text>
+    </g>
+    <!-- Arrow down -->
+    <path d="M 200 133 L 200 143" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrowBlue)" />
+
+    <!-- Step 3 -->
+    <g transform="translate(20, 145)">
+      <rect width="360" height="36" rx="6" fill="#0f172a" stroke="#f59e0b" stroke-width="1" />
+      <text x="12" y="22" font-size="11" font-weight="700" fill="#fbbf24">Task 3: aggregate_gold_sql (SQL Analytics KPIs)</text>
+    </g>
+    <!-- Arrow down -->
+    <path d="M 200 183 L 200 193" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrowBlue)" />
+
+    <!-- Step 4 -->
+    <g transform="translate(20, 195)">
+      <rect width="360" height="32" rx="6" fill="#0f172a" stroke="#ec4899" stroke-width="1" />
+      <text x="12" y="20" font-size="11" font-weight="700" fill="#f472b6">Task 4: analytics_notebook (Interactive Reporting)</text>
+    </g>
   </g>
 
-  <!-- ==================== COLUMN 3: DATABRICKS CE ==================== -->
-  <rect x="990" y="105" width="410" height="630" rx="16" fill="url(#cardBg1)" stroke="#b91c1c" stroke-width="2" filter="url(#dropShadow)" />
-  <rect x="990" y="105" width="410" height="42" rx="16" fill="#991b1b" />
-  <rect x="990" y="130" width="410" height="17" fill="#991b1b" />
-  <text x="1015" y="132" font-size="15" font-weight="700" fill="#ffffff">3. DATABRICKS COMMUNITY EDITION (CE)</text>
+  <!-- GitHub Actions CI Pipeline -->
+  <g transform="translate(580, 405)">
+    <rect width="400" height="155" rx="10" fill="#1e293b" stroke="#2088ff" stroke-width="1.2" />
+    <text x="20" y="26" font-size="13" font-weight="700" fill="#60a5fa">⚙️ GitHub Actions CI (.github/workflows/ci.yml)</text>
+    <text x="20" y="52" font-size="11" fill="#cbd5e1">1. <tspan fill="#f1f5f9">Ruff</tspan> Linter &amp; Code Formatter check</text>
+    <text x="20" y="74" font-size="11" fill="#cbd5e1">2. <tspan fill="#f1f5f9">OpenJDK 11</tspan> setup + Python 3.10/3.11/3.12 matrix</text>
+    <text x="20" y="96" font-size="11" fill="#cbd5e1">3. <tspan fill="#f1f5f9">Chispa</tspan> DataFrame equality tests &amp; pytest-benchmark</text>
+    <text x="20" y="118" font-size="11" fill="#cbd5e1">4. <tspan fill="#f1f5f9">Wheel build</tspan> + artifact upload</text>
+    <text x="20" y="138" font-size="11" fill="#34d399">✔ Tests validated before deployment</text>
+  </g>
+
+  <!-- Trigger -->
+  <g transform="translate(680, 575)">
+    <rect width="200" height="40" rx="8" fill="#334155" stroke="#64748b" stroke-width="1" />
+    <text x="100" y="24" text-anchor="middle" font-size="11" font-weight="700" fill="#f8fafc">Push to 'main' / Approval</text>
+  </g>
+
+  <!-- GitHub Actions CD Pipeline -->
+  <g transform="translate(580, 630)">
+    <rect width="400" height="155" rx="10" fill="#1e293b" stroke="#3b82f6" stroke-width="1.2" />
+    <text x="20" y="26" font-size="13" font-weight="700" fill="#60a5fa">🚀 GitHub Actions CD (.github/workflows/cd.yml)</text>
+    <text x="20" y="50" font-size="11" fill="#cbd5e1">• Injects GitHub Secrets: <tspan fill="#93c5fd">DATABRICKS_HOST, TOKEN</tspan></text>
+    <text x="20" y="72" font-size="11" fill="#cbd5e1">• Compiles distribution wheel via <tspan fill="#38bdf8">forge build</tspan></text>
+    <text x="20" y="94" font-size="11" fill="#cbd5e1">• Automatically deploys to Databricks via <tspan fill="#38bdf8">forge deploy</tspan></text>
+    <text x="20" y="116" font-size="11" fill="#cbd5e1">• Syncs Wheels, SQL Scripts &amp; Master DAG Runner</text>
+    <text x="20" y="136" font-size="11" fill="#34d399">✔ Zero-downtime Workspace deployment</text>
+  </g>
+
+  <!-- ==================== COLUMN 3: DATABRICKS RUNTIME ==================== -->
+  <rect x="1060" y="100" width="450" height="780" rx="16" fill="url(#cardGrad)" stroke="#b91c1c" stroke-width="2" filter="url(#shadow)" />
+  <rect x="1060" y="100" width="450" height="42" rx="16" fill="#991b1b" />
+  <rect x="1060" y="125" width="450" height="17" fill="#991b1b" />
+  <text x="1085" y="127" font-size="14" font-weight="800" fill="#ffffff">3. DATABRICKS COMMUNITY &amp; ENTERPRISE</text>
 
   <!-- Workspace REST API -->
-  <g transform="translate(1015, 170)">
-    <rect width="360" height="75" rx="10" fill="#1e293b" stroke="#ef4444" stroke-width="1.5" />
-    <text x="20" y="26" font-size="13" font-weight="700" fill="#f87171">🌐 Workspace REST API v2.0</text>
-    <text x="20" y="48" font-size="11" fill="#fca5a5">POST /api/2.0/workspace/import</text>
-    <text x="20" y="65" font-size="10" fill="#94a3b8">Bypasses CE lack of Jobs API v2.1 via direct Workspace import</text>
+  <g transform="translate(1085, 155)">
+    <rect width="400" height="75" rx="10" fill="#1e293b" stroke="#ef4444" stroke-width="1.5" />
+    <text x="20" y="26" font-size="13" font-weight="800" fill="#f87171">🌐 Workspace REST API v2.0</text>
+    <text x="20" y="48" font-size="11" fill="#fca5a5">POST /api/2.0/workspace/import (Base64)</text>
+    <text x="20" y="65" font-size="10" fill="#94a3b8">Bypasses CE lack of Jobs API via direct Workspace import</text>
   </g>
 
-  <!-- Workspace Folder Structure -->
-  <g transform="translate(1015, 260)">
-    <rect width="360" height="85" rx="10" fill="#1e293b" stroke="#f59e0b" stroke-width="1.2" />
-    <text x="20" y="24" font-size="12" font-weight="700" fill="#fbbf24">📂 /Shared/forge_deployments/{{project_slug}}</text>
+  <!-- Secret Scope Storage -->
+  <g transform="translate(1085, 245)">
+    <rect width="400" height="85" rx="10" fill="#1e293b" stroke="#10b981" stroke-width="1.2" />
+    <text x="20" y="24" font-size="13" font-weight="700" fill="#34d399">🔒 Databricks Secret Scopes (/api/2.0/secrets/*)</text>
+    <text x="20" y="46" font-size="11" fill="#cbd5e1">• Scope: <tspan fill="#a7f3d0">forge_scope</tspan> (created via forge secret)</text>
+    <text x="20" y="66" font-size="11" fill="#cbd5e1">• Accessed in code via <tspan fill="#34d399">dbutils.secrets.get()</tspan> / get_secret</text>
+  </g>
+
+  <!-- Workspace Folder -->
+  <g transform="translate(1085, 345)">
+    <rect width="400" height="120" rx="10" fill="#1e293b" stroke="#f59e0b" stroke-width="1.2" />
+    <text x="20" y="24" font-size="13" font-weight="700" fill="#fbbf24">📂 /Shared/forge_deployments/{{project_slug}}</text>
     <text x="20" y="46" font-size="11" fill="#cbd5e1">├── {{project_slug}}-0.1.0-py3-none-any.whl</text>
-    <text x="20" y="66" font-size="11" fill="#cbd5e1">└── run_pipeline_notebook (Workspace Notebook)</text>
+    <text x="20" y="66" font-size="11" fill="#cbd5e1">├── master_dag_runner (Multi-job Orchestrator)</text>
+    <text x="20" y="86" font-size="11" fill="#cbd5e1">├── run_pipeline_notebook (Interactive Widgets)</text>
+    <text x="20" y="106" font-size="11" fill="#cbd5e1">└── sql/ (01_clean_transactions, 02_gold_metrics)</text>
   </g>
 
-  <!-- CE Runner Notebook -->
-  <g transform="translate(1015, 360)">
-    <rect width="360" height="185" rx="10" fill="#1e293b" stroke="#ec4899" stroke-width="1.5" />
-    <text x="20" y="26" font-size="13" font-weight="700" fill="#f472b6">📓 CE Runner Notebook (run_pipeline_notebook)</text>
-    <text x="20" y="50" font-size="11" fill="#94a3b8">1. <tspan fill="#f9a8d4">Widgets</tspan>: row_count, log_level, mode</text>
-    <text x="20" y="72" font-size="11" fill="#94a3b8">2. <tspan fill="#f9a8d4">Auto Install</tspan>: %pip install {{project_slug}}.whl</text>
-    <text x="20" y="94" font-size="11" fill="#94a3b8">3. <tspan fill="#f9a8d4">CatalogManager</tspan>: Reads/Writes Delta tables</text>
-    <text x="20" y="116" font-size="11" fill="#94a3b8">4. <tspan fill="#f9a8d4">Pipeline Run</tspan>: Bronze → Silver → Gold metrics</text>
-    <text x="20" y="138" font-size="11" fill="#94a3b8">5. <tspan fill="#f9a8d4">Visual Analytics</tspan>: display(gold_df)</text>
-    <text x="20" y="160" font-size="11" fill="#34d399">✔ Automated assertions &amp; summary logs</text>
+  <!-- Master DAG Runner -->
+  <g transform="translate(1085, 480)">
+    <rect width="400" height="115" rx="10" fill="#1e293b" stroke="#ec4899" stroke-width="1.5" />
+    <text x="20" y="24" font-size="13" font-weight="700" fill="#f472b6">📓 Master DAG Runner (master_dag_runner)</text>
+    <text x="20" y="46" font-size="11" fill="#cbd5e1">• Executes tasks sequentially in resolved topological order</text>
+    <text x="20" y="66" font-size="11" fill="#cbd5e1">• Runs Python Wheels, SQL scripts, and Notebooks</text>
+    <text x="20" y="86" font-size="11" fill="#cbd5e1">• Gathers timings, error metrics &amp; assertion reports</text>
+    <text x="20" y="104" font-size="11" fill="#34d399">✔ Full DAG execution supported in Free CE Tier!</text>
   </g>
 
-  <!-- CE Cluster -->
-  <g transform="translate(1015, 560)">
-    <rect width="360" height="65" rx="10" fill="#0f172a" stroke="#64748b" stroke-width="1.2" />
-    <text x="20" y="26" font-size="12" font-weight="700" fill="#f8fafc">💻 Databricks CE Compute Cluster</text>
-    <text x="20" y="46" font-size="11" fill="#94a3b8">Single-Node · Spark 3.5.x · Delta Lake 3.x · Python 3.11</text>
+  <!-- Compute Cluster -->
+  <g transform="translate(1085, 610)">
+    <rect width="400" height="75" rx="10" fill="#0f172a" stroke="#64748b" stroke-width="1.2" />
+    <text x="20" y="24" font-size="12" font-weight="700" fill="#f8fafc">💻 Databricks Compute Cluster (SingleNode / MultiNode)</text>
+    <text x="20" y="44" font-size="11" fill="#94a3b8">Spark 3.5.x · Delta Lake 3.x · Python 3.11 · DBR 14.3 LTS</text>
+    <text x="20" y="62" font-size="10" fill="#cbd5e1">Selected profile: AWS i3.xlarge / Azure DS3_v2 / CE SingleNode</text>
   </g>
 
-  <!-- Delta Storage -->
-  <g transform="translate(1015, 640)">
-    <rect width="360" height="70" rx="10" fill="url(#blueGlow)" filter="url(#dropShadow)" />
-    <text x="180" y="28" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">🗄️ Databricks Metastore / Delta Tables</text>
-    <text x="180" y="50" text-anchor="middle" font-size="11" fill="#bfdbfe">default.{{project_slug}}_bronze / _silver / _gold</text>
+  <!-- Delta Storage Tables -->
+  <g transform="translate(1085, 700)">
+    <rect width="400" height="75" rx="10" fill="url(#deltaBlue)" filter="url(#shadow)" />
+    <text x="200" y="28" text-anchor="middle" font-size="13" font-weight="800" fill="#ffffff">🗄️ Databricks Metastore / Unity Catalog</text>
+    <text x="200" y="48" text-anchor="middle" font-size="11" fill="#e0f2fe">default.{{project_slug}}_bronze · silver_sql · gold_sql</text>
+    <text x="200" y="66" text-anchor="middle" font-size="10" fill="#ffffff">ACID Transactions · Parquet Storage · Delta Log</text>
   </g>
 
-  <!-- CONNECTORS -->
+  <!-- INTER-COLUMN CONNECTING ARROWS -->
   <!-- Col 1 to Col 2 -->
-  <path d="M 435 200 L 540 200" stroke="#60a5fa" stroke-width="2" marker-end="url(#arrowhead)" />
-  <text x="487" y="190" text-anchor="middle" font-size="10" font-weight="600" fill="#93c5fd">git push</text>
+  <path d="M 475 190 L 580 190" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrowBlue)" />
+  <text x="527" y="180" text-anchor="middle" font-size="10" font-weight="700" fill="#7dd3fc">git push</text>
 
   <!-- CI to Merge -->
-  <path d="M 725 340 L 725 370" stroke="#34d399" stroke-width="2" marker-end="url(#arrowGreen)" />
+  <path d="M 780 560 L 780 575" stroke="#34d399" stroke-width="2" marker-end="url(#arrowGreen)" />
 
   <!-- Merge to CD -->
-  <path d="M 725 425 L 725 450" stroke="#34d399" stroke-width="2" marker-end="url(#arrowGreen)" />
+  <path d="M 780 615 L 780 630" stroke="#34d399" stroke-width="2" marker-end="url(#arrowGreen)" />
 
   <!-- CD to Databricks API -->
-  <path d="M 905 545 L 960 545 L 960 210 L 1010 210" stroke="#fb923c" stroke-width="2" fill="none" marker-end="url(#arrowOrange)" />
-  <text x="960" y="380" text-anchor="middle" font-size="10" font-weight="700" fill="#fdba74" transform="rotate(-90 960 380)">forge deploy</text>
+  <path d="M 980 710 L 1030 710 L 1030 195 L 1080 195" stroke="#FF3621" stroke-width="2" fill="none" marker-end="url(#arrowRed)" />
+  <text x="1030" y="450" text-anchor="middle" font-size="11" font-weight="800" fill="#FF5238" transform="rotate(-90 1030 450)">forge deploy</text>
 
-  <!-- Databricks internal links -->
-  <path d="M 1195 245 L 1195 255" stroke="#ef4444" stroke-width="2" marker-end="url(#arrowhead)" />
-  <path d="M 1195 345 L 1195 355" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrowhead)" />
-  <path d="M 1195 545 L 1195 555" stroke="#ec4899" stroke-width="2" marker-end="url(#arrowhead)" />
-  <path d="M 1195 625 L 1195 635" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrowhead)" />
+  <!-- Secrets sync link -->
+  <path d="M 475 280 L 530 280 L 530 50 L 1285 50 L 1285 245" stroke="#10b981" stroke-width="1.8" stroke-dasharray="5,5" fill="none" marker-end="url(#arrowGreen)" />
+  <text x="910" y="42" text-anchor="middle" font-size="10" font-weight="700" fill="#34d399">forge secret sync-env</text>
 
 </svg>

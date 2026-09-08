@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "databricks-forge-cli"
-version = "0.1.0"
+version = "0.2.0"
 description = "Industrial-grade CLI for scaffolding, testing, packaging, and deploying PySpark Lakehouse projects to Databricks Community Edition & Databricks Connect."
 readme = "README.md"
 authors = [

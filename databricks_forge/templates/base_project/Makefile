@@ -1,4 +1,4 @@
-.PHONY: help install lint test unit-test integration-test perf-test docker-build docker-test run-local build deploy clean
+.PHONY: help install lint test unit-test integration-test perf-test docker-build docker-test run-local dag-validate dag-run sql-run build deploy clean
 
 help:
 	@echo "Available commands for {{project_name}}:"
@@ -11,6 +11,9 @@ help:
 	@echo "  make docker-build      Build local PySpark Docker container"
 	@echo "  make docker-test       Run unit tests inside Docker container"
 	@echo "  make run-local         Execute pipeline locally"
+	@echo "  make dag-validate      Validate workflow.yaml DAG dependencies"
+	@echo "  make dag-run           Execute full multi-job DAG"
+	@echo "  make sql-run           Execute SQL transformation scripts"
 	@echo "  make build             Compile project wheel into dist/"
 	@echo "  make deploy            Deploy wheel to Databricks CE Workspace"
 	@echo "  make clean             Remove temporary build/cache artifacts"
@@ -42,6 +45,15 @@ docker-test:
 
 run-local:
 	python -m {{project_slug}}.entrypoint --mode local --rows 500
+
+dag-validate:
+	forge dag validate --file workflow.yaml
+
+dag-run:
+	forge dag run --file workflow.yaml --mode local
+
+sql-run:
+	forge sql run sql/01_clean_transactions.sql
 
 build:
 	python -m build --wheel --outdir dist/

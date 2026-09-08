@@ -73,27 +73,21 @@ class ProjectGenerator:
         pyspark_version: str = "3.5.0",
         delta_version: str = "3.0.0",
         python_version: str = "3.11",
+        cloud: str = "ce",
+        node_type_id: Optional[str] = None,
+        num_workers: int = 0,
+        spark_version: str = "14.3.x-scala2.12",
     ) -> List[Path]:
-        """Creates a new scaffolded Lakehouse project.
-
-        Args:
-            project_name: Name of the project (e.g., 'customer-360-lakehouse').
-            target_dir: Destination directory.
-            description: Project description string.
-            author_name: Author name for metadata.
-            author_email: Author email for metadata.
-            pyspark_version: PySpark version string.
-            delta_version: Delta Spark version string.
-            python_version: Target Python version string.
-
-        Returns:
-            List of generated file paths.
-        """
+        """Creates a new scaffolded Lakehouse project."""
         dest_root = Path(target_dir).resolve()
         dest_root.mkdir(parents=True, exist_ok=True)
 
         slug = slugify(project_name)
         git_user = get_git_config_user()
+
+        selected_node = node_type_id
+        if not selected_node:
+            selected_node = "SingleNode" if cloud == "ce" else ("Standard_DS3_v2" if cloud == "azure" else ("n1-standard-4" if cloud == "gcp" else "m5d.large"))
 
         context: Dict[str, Any] = {
             "project_name": project_name,
@@ -104,6 +98,11 @@ class ProjectGenerator:
             "pyspark_version": pyspark_version,
             "delta_version": delta_version,
             "python_version": python_version,
+            "cloud": cloud,
+            "node_type_id": selected_node,
+            "num_workers": num_workers,
+            "single_node": num_workers == 0 or cloud == "ce",
+            "spark_version": spark_version,
         }
 
         generated_files: List[Path] = []

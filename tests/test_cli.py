@@ -12,7 +12,7 @@ def test_cli_version():
     result = runner.invoke(app, ["--version"])
     assert result.exit_code == 0
     assert "Databricks Forge CLI" in result.output
-    assert "0.1.0" in result.output
+    assert "0.2.0" in result.output
 
 
 def test_cli_check():
@@ -30,15 +30,33 @@ def test_cli_init_command(tmp_path: Path):
         str(tmp_path),
         "--description",
         "Test retail lakehouse pipeline",
+        "--cloud",
+        "aws",
+        "--node-type",
+        "i3.xlarge",
+        "--workers",
+        "2",
     ])
     assert result.exit_code == 0
     assert "Successfully created" in result.output
+    # Check ASCII banner presence
+    assert "DATABRICKS FORGE CLI" in result.output
 
     project_dir = tmp_path / "retail_lakehouse"
     assert project_dir.exists()
     assert (project_dir / "pyproject.toml").exists()
+    assert (project_dir / "workflow.yaml").exists()
+    assert (project_dir / "sql/01_clean_transactions.sql").exists()
+    assert (project_dir / "sql/02_gold_metrics.sql").exists()
+    assert (project_dir / "notebooks/master_dag_runner.py").exists()
     assert (project_dir / "src/retail_lakehouse/session.py").exists()
     assert (project_dir / "notebooks/run_pipeline_notebook.py").exists()
+
+    # Check workflow.yaml has configured compute
+    wf_content = (project_dir / "workflow.yaml").read_text()
+    assert 'cloud: "aws"' in wf_content
+    assert 'node_type_id: "i3.xlarge"' in wf_content
+    assert "num_workers: 2" in wf_content
 
 
 def test_cli_init_fails_if_dir_exists_and_not_empty(tmp_path: Path):
@@ -55,6 +73,42 @@ def test_cli_init_fails_if_dir_exists_and_not_empty(tmp_path: Path):
     assert result.exit_code == 1
     normalized = " ".join(result.output.split())
     assert "already exists and is not empty" in normalized
+
+
+def test_cli_compute_list():
+    result = runner.invoke(app, ["compute", "list", "--cloud", "aws"])
+    assert result.exit_code == 0
+    assert "i3.xlarge" in result.output
+    assert "Storage Optimized" in result.output
+
+
+def test_cli_dag_validate(tmp_path: Path):
+    # Scaffold a project first
+    runner.invoke(app, ["init", "test_dag_proj", "--output-dir", str(tmp_path)])
+    wf_file = tmp_path / "test_dag_proj" / "workflow.yaml"
+
+    result = runner.invoke(app, ["dag", "validate", "--file", str(wf_file)])
+    assert result.exit_code == 0
+    assert "DAG Validation: OK" in result.output
+    assert "Topological Execution Plan" in result.output
+
+
+def test_cli_sql_deploy(tmp_path: Path):
+    sql_file = tmp_path / "test.sql"
+    sql_file.write_text("SELECT 1;")
+
+    with patch("databricks_forge.main.DatabricksCEClient") as mock_client_cls:
+        mock_client = MagicMock()
+        mock_client_cls.return_value = mock_client
+
+        result = runner.invoke(app, [
+            "sql", "deploy", str(sql_file),
+            "--target-path", "/Shared/sql/test",
+            "--host", "https://community.cloud.databricks.com",
+            "--token", "dapi_fake",
+        ])
+        assert result.exit_code == 0
+        assert "deployed to /Shared/sql/test" in result.output
 
 
 def test_cli_run_notebook():

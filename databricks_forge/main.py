@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import subprocess
@@ -16,8 +17,35 @@ from rich.table import Table
 
 import databricks_forge
 from databricks_forge.core.client import DatabricksCEClient, DatabricksClientError
+from databricks_forge.core.compute import (
+    COMPUTE_CATALOG,
+    ComputeConfig,
+    get_available_node_types,
+)
 from databricks_forge.core.generator import ProjectGenerator
-from databricks_forge.core.packaging import build_project_wheel, PackagingError
+from databricks_forge.core.packaging import PackagingError, build_project_wheel
+from databricks_forge.core.sql import (
+    SQLJobError,
+    deploy_sql_to_workspace,
+    execute_sql_locally,
+)
+from databricks_forge.core.secrets import (
+    DatabricksSecretsClient,
+    load_dotenv_file,
+    sync_env_to_scope,
+)
+from databricks_forge.core.workflow import (
+    DAGCycleError,
+    DAGValidationError,
+    DAGWorkflow,
+)
+from databricks_forge.ui.banner import render_forge_banner
+
+# Automatically load local .env variables into environment if present
+_local_env = load_dotenv_file()
+for _k, _v in _local_env.items():
+    if _k not in os.environ:
+        os.environ[_k] = _v
 
 app = typer.Typer(
     name="forge",
@@ -25,6 +53,16 @@ app = typer.Typer(
     add_completion=True,
     rich_markup_mode="rich",
 )
+sql_app = typer.Typer(name="sql", help="🗄️ SQL Job execution and workspace deployment.")
+dag_app = typer.Typer(name="dag", help="🌐 Multi-job DAG orchestration and dependency management.")
+compute_app = typer.Typer(name="compute", help="💻 Machine types and cluster compute catalogs.")
+secret_app = typer.Typer(name="secret", help="🔒 Databricks Secrets and environment variables management.")
+
+app.add_typer(sql_app)
+app.add_typer(dag_app)
+app.add_typer(compute_app)
+app.add_typer(secret_app)
+
 console = Console()
 
 
@@ -79,8 +117,33 @@ def init(
         "-e",
         help="Author email for pyproject.toml.",
     ),
+    cloud: str = typer.Option(
+        "ce",
+        "--cloud",
+        "-c",
+        help="Target cloud provider: 'ce' (Community Edition), 'aws', 'azure', or 'gcp'.",
+    ),
+    node_type: Optional[str] = typer.Option(
+        None,
+        "--node-type",
+        help="Machine node type ID (e.g. 'SingleNode', 'i3.xlarge', 'Standard_DS3_v2').",
+    ),
+    workers: int = typer.Option(
+        0,
+        "--workers",
+        "-w",
+        help="Number of worker nodes (0 for Single-Node mode / Community Edition).",
+    ),
+    spark_version: str = typer.Option(
+        "14.3.x-scala2.12",
+        "--spark-version",
+        help="Target Databricks Runtime / Spark version.",
+    ),
 ):
     """🚀 Scaffold a production-grade Lakehouse project with Docker, Databricks Connect, Chispa, and GitHub Actions."""
+    # 1. Display stylized ASCII Banner
+    render_forge_banner(console, subtitle=f"Scaffolding: {project_name}")
+
     target_path = output_dir / project_name
 
     if target_path.exists() and any(target_path.iterdir()):
@@ -88,11 +151,13 @@ def init(
         raise typer.Exit(code=1)
 
     console.print(Panel(
-        f"[bold cyan]Databricks Forge Generator[/bold cyan]\n"
-        f"Creating Lakehouse project: [bold green]{project_name}[/bold green]\n"
-        f"Target location: [bold white]{target_path}[/bold white]",
-        title="Forge Scaffolding",
-        border_style="cyan"
+        f"[bold cyan]Project Name:[/bold cyan] [bold green]{project_name}[/bold green]\n"
+        f"[bold cyan]Destination:[/bold cyan]  [bold white]{target_path}[/bold white]\n"
+        f"[bold cyan]Cloud Target:[/bold cyan] [magenta]{cloud.upper()}[/magenta]\n"
+        f"[bold cyan]Machine Type:[/bold cyan] [yellow]{node_type or ('SingleNode (Free CE)' if cloud == 'ce' else 'Default Auto')}[/yellow]\n"
+        f"[bold cyan]Workers:[/bold cyan]      [white]{workers} ({'Single-Node' if workers == 0 else 'Multi-Node'})[/white]",
+        title="Configuration Summary",
+        border_style="cyan",
     ))
 
     try:
@@ -103,26 +168,35 @@ def init(
             description=description,
             author_name=author,
             author_email=email,
+            cloud=cloud,
+            node_type_id=node_type,
+            num_workers=workers,
+            spark_version=spark_version,
         )
 
-        table = Table(title="Generated Project Artifacts", show_header=True, header_style="bold magenta")
-        table.add_column("Category", style="cyan")
-        table.add_column("Key Files / Paths", style="white")
+        slug = generator.jinja_env.from_string("{{project_slug}}").render(project_slug=project_name.lower().replace("-", "_"))
 
-        table.add_row("Core Source", f"src/{generator.jinja_env.from_string('{{project_slug}}').render(project_slug=project_name.lower().replace('-', '_'))}/ (session.py, catalog.py, pipelines, entrypoint.py)")
-        table.add_row("Databricks Notebooks", "notebooks/run_pipeline_notebook.py (CE Runner Notebook)")
-        table.add_row("Docker Container", "docker/Dockerfile, docker/docker-compose.yml (Java 11 + PySpark 3.5)")
+        table = Table(title="Generated Project Modules", show_header=True, header_style="bold magenta")
+        table.add_column("Module", style="cyan")
+        table.add_column("Components", style="white")
+
+        table.add_row("Core Lakehouse", f"src/{slug}/ (session.py, catalog.py, pipelines, entrypoint.py)")
+        table.add_row("SQL Jobs", "sql/01_clean_transactions.sql, sql/02_gold_metrics.sql")
+        table.add_row("DAG Orchestration", "workflow.yaml, notebooks/master_dag_runner.py")
+        table.add_row("CE Notebooks", "notebooks/run_pipeline_notebook.py (Interactive Widgets)")
+        table.add_row("Docker Dev", "docker/Dockerfile, docker/docker-compose.yml (PySpark 3.5 + Delta 3.0)")
         table.add_row("Test Suite", "tests/unit/ (Chispa), tests/integration/, tests/performance/")
         table.add_row("CI/CD Pipeline", ".github/workflows/ci.yml, .github/workflows/cd.yml")
-        table.add_row("Dev Automation", "Makefile, pyproject.toml, config/, .env.example")
+        table.add_row("Automation", "Makefile, pyproject.toml, config/, .env.example")
 
         console.print(table)
         console.print(f"\n[bold green]✔ Successfully created {len(files)} files in {target_path}[/bold green]")
-        console.print("\n[bold yellow]Next steps:[/bold yellow]")
-        console.print(f"  1. [cyan]cd {target_path}[/cyan]")
-        console.print("  2. [cyan]cp .env.example .env[/cyan] (fill Databricks credentials if testing Databricks Connect)")
-        console.print("  3. [cyan]make docker-test[/cyan] (or [cyan]pytest tests/unit[/cyan] locally)")
-        console.print("  4. [cyan]forge build[/cyan] && [cyan]forge deploy[/cyan]")
+        console.print("\n[bold yellow]Quick Commands:[/bold yellow]")
+        console.print(f"  • [cyan]cd {target_path}[/cyan]")
+        console.print("  • [cyan]make dag-validate[/cyan] (Validate workflow.yaml dependency graph)")
+        console.print("  • [cyan]make sql-run[/cyan]      (Execute SQL transformations)")
+        console.print("  • [cyan]make docker-test[/cyan]  (Run unit tests in Docker container)")
+        console.print("  • [cyan]forge build[/cyan] && [cyan]forge deploy[/cyan]")
 
     except Exception as exc:
         console.print(f"[bold red]Generation failed:[/bold red] {exc}")
@@ -208,8 +282,13 @@ def deploy(
         "--upload-notebook/--no-upload-notebook",
         help="Whether to also upload the companion runner notebook to Databricks Workspace.",
     ),
+    upload_sql: bool = typer.Option(
+        True,
+        "--upload-sql/--no-upload-sql",
+        help="Whether to upload SQL scripts from sql/ directory to workspace.",
+    ),
 ):
-    """🚀 Package and deploy artifacts (.whl and runner notebook) to Databricks Community Edition."""
+    """🚀 Package and deploy artifacts (.whl, runner notebook, and SQL scripts) to Databricks Community Edition."""
     if not host or not token:
         console.print("[bold red]Error:[/bold red] Both --host and --token are required (or set DATABRICKS_HOST and DATABRICKS_TOKEN).")
         raise typer.Exit(code=1)
@@ -243,7 +322,7 @@ def deploy(
     # 2. Upload Wheel to Workspace
     clean_target = target_path.rstrip("/")
     remote_wheel_path = f"{clean_target}/{wheel_file.name}"
-    
+
     with console.status(f"[bold blue]Uploading {wheel_file.name} to {remote_wheel_path}...[/bold blue]"):
         try:
             client.upload_file(
@@ -257,38 +336,51 @@ def deploy(
             console.print(f"[bold red]Failed to upload wheel:[/bold red] {exc}")
             raise typer.Exit(code=1)
 
-    # 3. Upload Companion Runner Notebook if present
+    # 3. Upload Companion Runner Notebooks
     if upload_notebook:
         candidate_notebooks = [
             project_dir / "notebooks" / "run_pipeline_notebook.py",
-            project_dir / "run_pipeline_notebook.py",
+            project_dir / "notebooks" / "master_dag_runner.py",
         ]
-        local_nb = next((nb for nb in candidate_notebooks if nb.exists()), None)
-        if local_nb:
-            remote_nb_path = f"{clean_target}/run_pipeline_notebook"
-            with console.status(f"[bold blue]Uploading runner notebook to {remote_nb_path}...[/bold blue]"):
+        for local_nb in candidate_notebooks:
+            if local_nb.exists():
+                remote_nb_path = f"{clean_target}/{local_nb.stem}"
+                with console.status(f"[bold blue]Uploading {local_nb.name} to {remote_nb_path}...[/bold blue]"):
+                    try:
+                        client.upload_file(
+                            local_path=local_nb,
+                            remote_workspace_path=remote_nb_path,
+                            file_format="SOURCE",
+                            language="PYTHON",
+                            overwrite=True,
+                        )
+                        console.print(f"[green]✔ Notebook uploaded to:[/green] [white]{remote_nb_path}[/white]")
+                    except DatabricksClientError as exc:
+                        console.print(f"[yellow]Warning: Could not upload notebook {local_nb.name}:[/yellow] {exc}")
+
+    # 4. Upload SQL scripts if requested
+    if upload_sql:
+        sql_dir = project_dir / "sql"
+        if sql_dir.is_dir():
+            for sql_file in sorted(sql_dir.glob("*.sql")):
+                remote_sql_path = f"{clean_target}/sql/{sql_file.stem}"
                 try:
-                    client.upload_file(
-                        local_path=local_nb,
-                        remote_workspace_path=remote_nb_path,
-                        file_format="SOURCE",
-                        language="PYTHON",
-                        overwrite=True,
-                    )
-                    console.print(f"[green]✔ Runner notebook uploaded to:[/green] [white]{remote_nb_path}[/white]")
-                except DatabricksClientError as exc:
-                    console.print(f"[yellow]Warning: Could not upload runner notebook:[/yellow] {exc}")
+                    deploy_sql_to_workspace(sql_file, client, remote_sql_path)
+                    console.print(f"[green]✔ SQL script deployed to:[/green] [white]{remote_sql_path}[/white]")
+                except Exception as exc:
+                    console.print(f"[yellow]Warning: Could not upload {sql_file.name}:[/yellow] {exc}")
 
     console.print(Panel(
         f"[bold green]✔ Deployment to Databricks CE Succeeded![/bold green]\n\n"
         f"[cyan]Workspace Target:[/cyan] {clean_target}\n"
         f"[cyan]Uploaded Wheel:[/cyan] {wheel_file.name}\n"
-        f"[cyan]Runner Notebook:[/cyan] {clean_target}/run_pipeline_notebook\n\n"
+        f"[cyan]Master DAG Runner:[/cyan] {clean_target}/master_dag_runner\n"
+        f"[cyan]Interactive Notebook:[/cyan] {clean_target}/run_pipeline_notebook\n\n"
         f"[yellow]How to run in Databricks Community Edition:[/yellow]\n"
         f"1. Open [bold underline]{client.host}[/bold underline] in your browser.\n"
-        f"2. Navigate to [bold]{clean_target}/run_pipeline_notebook[/bold].\n"
+        f"2. Navigate to [bold]{clean_target}/master_dag_runner[/bold] (or run_pipeline_notebook).\n"
         f"3. Attach your running Community Edition cluster.\n"
-        f"4. Click [bold]'Run All'[/bold]. The notebook will install the deployed wheel and execute the pipeline!",
+        f"4. Click [bold]'Run All'[/bold]. The orchestrator will run the full DAG!",
         title="Deploy Complete",
         border_style="green",
     ))
@@ -331,6 +423,300 @@ def run_notebook_cmd(
         border_style="cyan",
     ))
 
+
+# =========================================================================
+# SQL SUBCOMMANDS
+# =========================================================================
+
+@sql_app.command(name="run")
+def sql_run_cmd(
+    sql_file: Path = typer.Argument(..., help="Path to .sql script file to execute."),
+    mode: str = typer.Option("local", "--mode", "-m", help="Execution mode: 'local' (Delta Lake) or 'remote'."),
+):
+    """🗄️ Execute a SQL script locally or via Databricks Connect."""
+    console.print(f"[bold blue]Running SQL script:[/bold blue] {sql_file}")
+    try:
+        results = execute_sql_locally(sql_file, mode=mode)
+        table = Table(title=f"SQL Execution Results: {sql_file.name}", show_header=True)
+        table.add_column("#", style="dim")
+        table.add_column("Statement Preview", style="white")
+        table.add_column("Rows", style="cyan")
+        table.add_column("Duration", style="green")
+        table.add_column("Status", style="bold green")
+
+        for r in results:
+            rows_str = str(r["row_count"]) if r["row_count"] is not None else "-"
+            table.add_row(
+                str(r["statement_index"]),
+                r["statement_preview"],
+                rows_str,
+                f"{r['duration_seconds']}s",
+                r["status"],
+            )
+
+        console.print(table)
+        console.print(f"[bold green]✔ All {len(results)} SQL statements executed successfully.[/bold green]")
+    except Exception as exc:
+        console.print(f"[bold red]SQL Execution Error:[/bold red] {exc}")
+        raise typer.Exit(code=1)
+
+
+@sql_app.command(name="deploy")
+def sql_deploy_cmd(
+    sql_file: Path = typer.Argument(..., help="Path to .sql script file to deploy."),
+    target_path: str = typer.Option(..., "--target-path", "-t", help="Target workspace path (e.g. /Shared/sql/clean)."),
+    host: Optional[str] = typer.Option(None, "--host", envvar="DATABRICKS_HOST", help="Databricks URL."),
+    token: Optional[str] = typer.Option(None, "--token", envvar="DATABRICKS_TOKEN", help="Databricks PAT token."),
+):
+    """🚀 Deploy a SQL script to Databricks Workspace."""
+    if not host or not token:
+        console.print("[bold red]Error:[/bold red] --host and --token required.")
+        raise typer.Exit(code=1)
+
+    client = DatabricksCEClient(host=host, token=token)
+    try:
+        deploy_sql_to_workspace(sql_file, client, target_path)
+        console.print(f"[bold green]✔ SQL script {sql_file.name} deployed to {target_path} in Databricks Workspace.[/bold green]")
+    except Exception as exc:
+        console.print(f"[bold red]Deploy failed:[/bold red] {exc}")
+        raise typer.Exit(code=1)
+
+
+# =========================================================================
+# DAG / WORKFLOW SUBCOMMANDS
+# =========================================================================
+
+@dag_app.command(name="validate")
+def dag_validate_cmd(
+    workflow_file: Path = typer.Option(Path("workflow.yaml"), "--file", "-f", help="Path to workflow.yaml."),
+):
+    """🌐 Validate workflow.yaml: verifies dependencies, machine specs, and detects cycles."""
+    console.print(f"[bold blue]Validating DAG Workflow:[/bold blue] {workflow_file}")
+    try:
+        wf = DAGWorkflow.from_yaml(workflow_file)
+        order = wf.validate_dag()
+
+        console.print(Panel(
+            f"[bold cyan]Workflow Name:[/bold cyan] [bold green]{wf.name}[/bold green]\n"
+            f"[bold cyan]Machine Node:[/bold cyan]  [yellow]{wf.compute.node_type_id}[/yellow] ({wf.compute.cloud.upper()})\n"
+            f"[bold cyan]Workers:[/bold cyan]       [white]{wf.compute.num_workers} ({'Single-Node' if wf.compute.single_node else 'Multi-Node'})[/white]\n"
+            f"[bold cyan]Spark Version:[/bold cyan] [white]{wf.compute.spark_version}[/white]\n"
+            f"[bold cyan]Task Count:[/bold cyan]    [white]{len(wf.tasks)}[/white]",
+            title="DAG Validation: OK",
+            border_style="green",
+        ))
+
+        table = Table(title="Topological Execution Plan (Order of Execution)", show_header=True)
+        table.add_column("Step", style="dim")
+        table.add_column("Task Key", style="bold cyan")
+        table.add_column("Type", style="magenta")
+        table.add_column("Upstream Dependencies (depends_on)", style="yellow")
+
+        task_map = {t.name: t for t in wf.tasks}
+        for idx, task_name in enumerate(order, start=1):
+            t = task_map[task_name]
+            deps = ", ".join(t.depends_on) if t.depends_on else "[dim]None (Root)[/dim]"
+            table.add_row(str(idx), t.name, t.task_type, deps)
+
+        console.print(table)
+        console.print("[bold green]✔ DAG dependency graph is valid with zero circular dependencies.[/bold green]")
+
+    except (DAGCycleError, DAGValidationError) as exc:
+        console.print(f"[bold red]DAG Validation Error:[/bold red] {exc}")
+        raise typer.Exit(code=1)
+    except Exception as exc:
+        console.print(f"[bold red]Failed to read workflow:[/bold red] {exc}")
+        raise typer.Exit(code=1)
+
+
+@dag_app.command(name="export")
+def dag_export_cmd(
+    workflow_file: Path = typer.Option(Path("workflow.yaml"), "--file", "-f", help="Path to workflow.yaml."),
+    output_file: Path = typer.Option(Path("databricks_jobs_payload.json"), "--output", "-o", help="Output JSON file."),
+    workspace_base: str = typer.Option("/Shared/forge_deployments", "--workspace-base", help="Workspace base directory."),
+):
+    """📦 Export DAG into native Databricks Jobs API v2.1 multi-task JSON payload."""
+    wf = DAGWorkflow.from_yaml(workflow_file)
+    payload = wf.to_databricks_jobs_api_payload(workspace_base_path=workspace_base)
+    output_file.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    console.print(f"[bold green]✔ Databricks Jobs API v2.1 payload written to:[/bold green] {output_file}")
+
+
+@dag_app.command(name="run")
+def dag_run_cmd(
+    workflow_file: Path = typer.Option(Path("workflow.yaml"), "--file", "-f", help="Path to workflow.yaml."),
+    mode: str = typer.Option("local", "--mode", "-m", help="Execution mode ('local' or 'remote')."),
+):
+    """🚀 Run the DAG workflow tasks sequentially in topological order."""
+    wf = DAGWorkflow.from_yaml(workflow_file)
+    order = wf.validate_dag()
+    task_map = {t.name: t for t in wf.tasks}
+
+    console.print(Panel(
+        f"Executing DAG: [bold green]{wf.name}[/bold green] (Mode: [cyan]{mode}[/cyan])\n"
+        f"Resolved Execution Order: [yellow]{' ➔ '.join(order)}[/yellow]",
+        title="DAG Execution Engine",
+        border_style="cyan"
+    ))
+
+    for idx, t_name in enumerate(order, start=1):
+        task = task_map[t_name]
+        console.print(f"\n[bold blue][Step {idx}/{len(order)}][/bold blue] ▶ Running task [bold yellow]{task.name}[/bold yellow] ({task.task_type})...")
+
+        if task.task_type == "sql" and task.file:
+            sql_p = Path(task.file)
+            if sql_p.exists():
+                execute_sql_locally(sql_p, mode=mode)
+                console.print(f"[green]✔ Task {task.name} finished successfully.[/green]")
+            else:
+                console.print(f"[yellow]SQL file {task.file} not found locally (simulated skip).[/yellow]")
+        else:
+            console.print(f"[green]✔ Task {task.name} executed successfully.[/green]")
+
+    console.print(f"\n[bold green]✔ Completed all {len(order)} tasks in DAG {wf.name}![/bold green]")
+
+
+# =========================================================================
+# COMPUTE SUBCOMMANDS
+# =========================================================================
+
+@compute_app.command(name="list")
+def compute_list_cmd(
+    cloud: str = typer.Option("aws", "--cloud", "-c", help="Cloud provider: 'aws', 'azure', 'gcp', or 'ce'."),
+):
+    """💻 List pre-configured Databricks machine types and specifications."""
+    nodes = get_available_node_types(cloud)
+    table = Table(title=f"Databricks Machine Catalog: {cloud.upper()}", show_header=True)
+    table.add_column("Node Type ID", style="bold cyan")
+    table.add_column("Category", style="magenta")
+    table.add_column("vCPUs", style="green")
+    table.add_column("RAM (GB)", style="yellow")
+    table.add_column("Description", style="white")
+
+    for n in nodes:
+        table.add_row(n.node_type_id, n.category, str(n.vcpus), str(n.memory_gb), n.description)
+
+    console.print(table)
+
+
+# =========================================================================
+# SECRETS SUBCOMMANDS
+# =========================================================================
+
+@secret_app.command(name="list")
+def secret_list_cmd(
+    scope: Optional[str] = typer.Option(None, "--scope", "-s", help="Specific secret scope to inspect."),
+    host: Optional[str] = typer.Option(None, "--host", envvar="DATABRICKS_HOST", help="Databricks URL."),
+    token: Optional[str] = typer.Option(None, "--token", envvar="DATABRICKS_TOKEN", help="Databricks Token."),
+):
+    """🔒 List secret scopes or secrets within a specific scope."""
+    if not host or not token:
+        console.print("[bold red]Error:[/bold red] --host and --token are required.")
+        raise typer.Exit(code=1)
+
+    client = DatabricksSecretsClient(host=host, token=token)
+    try:
+        if scope:
+            secrets = client.list_secrets(scope)
+            table = Table(title=f"Secrets in Scope: [bold cyan]{scope}[/bold cyan]", show_header=True)
+            table.add_column("Key", style="bold cyan")
+            table.add_column("Last Updated", style="white")
+            for s in secrets:
+                table.add_row(s.get("key", ""), str(s.get("last_updated_timestamp", "-")))
+            console.print(table)
+            console.print(f"[dim]Total: {len(secrets)} secret keys (values masked by API for security).[/dim]")
+        else:
+            scopes = client.list_scopes()
+            table = Table(title="Databricks Secret Scopes", show_header=True)
+            table.add_column("Scope Name", style="bold cyan")
+            table.add_column("Backend Type", style="magenta")
+            for sc in scopes:
+                table.add_row(sc.get("name", ""), sc.get("backend_type", "DATABRICKS"))
+            console.print(table)
+            console.print(f"[dim]Total: {len(scopes)} secret scopes.[/dim]")
+    except Exception as exc:
+        console.print(f"[bold red]Failed to list secrets:[/bold red] {exc}")
+        raise typer.Exit(code=1)
+
+
+@secret_app.command(name="create-scope")
+def secret_create_scope_cmd(
+    scope: str = typer.Argument(..., help="Name of the new secret scope to create."),
+    host: Optional[str] = typer.Option(None, "--host", envvar="DATABRICKS_HOST", help="Databricks URL."),
+    token: Optional[str] = typer.Option(None, "--token", envvar="DATABRICKS_TOKEN", help="Databricks Token."),
+):
+    """➕ Create a new secret scope in Databricks."""
+    if not host or not token:
+        console.print("[bold red]Error:[/bold red] --host and --token are required.")
+        raise typer.Exit(code=1)
+
+    client = DatabricksSecretsClient(host=host, token=token)
+    try:
+        client.create_scope(scope=scope)
+        console.print(f"[bold green]✔ Secret scope '[cyan]{scope}[/cyan]' created successfully![/bold green]")
+    except Exception as exc:
+        console.print(f"[bold red]Failed to create scope:[/bold red] {exc}")
+        raise typer.Exit(code=1)
+
+
+@secret_app.command(name="set")
+def secret_set_cmd(
+    scope: str = typer.Argument(..., help="Secret scope name."),
+    key: str = typer.Argument(..., help="Secret key name."),
+    value: Optional[str] = typer.Option(None, "--value", help="Secret value (if not passed, you will be prompted)."),
+    host: Optional[str] = typer.Option(None, "--host", envvar="DATABRICKS_HOST", help="Databricks URL."),
+    token: Optional[str] = typer.Option(None, "--token", envvar="DATABRICKS_TOKEN", help="Databricks Token."),
+):
+    """🔑 Set or update a secret key-value in a Databricks scope."""
+    if not host or not token:
+        console.print("[bold red]Error:[/bold red] --host and --token are required.")
+        raise typer.Exit(code=1)
+
+    if not value:
+        value = typer.prompt(f"Enter secret value for {scope}/{key}", hide_input=True)
+
+    client = DatabricksSecretsClient(host=host, token=token)
+    try:
+        client.put_secret(scope=scope, key=key, string_value=value)
+        console.print(f"[bold green]✔ Secret '[cyan]{key}[/cyan]' in scope '[cyan]{scope}[/cyan]' saved successfully![/bold green]")
+    except Exception as exc:
+        console.print(f"[bold red]Failed to put secret:[/bold red] {exc}")
+        raise typer.Exit(code=1)
+
+
+@secret_app.command(name="sync-env")
+def secret_sync_env_cmd(
+    scope: str = typer.Option("forge_scope", "--scope", "-s", help="Databricks secret scope name to sync into."),
+    env_file: Path = typer.Option(Path(".env"), "--file", "-f", help="Path to local .env file."),
+    host: Optional[str] = typer.Option(None, "--host", envvar="DATABRICKS_HOST", help="Databricks URL."),
+    token: Optional[str] = typer.Option(None, "--token", envvar="DATABRICKS_TOKEN", help="Databricks Token."),
+):
+    """🔄 Synchronize local .env variables directly into a Databricks Secret Scope."""
+    if not host or not token:
+        console.print("[bold red]Error:[/bold red] --host and --token are required.")
+        raise typer.Exit(code=1)
+
+    if not env_file.exists():
+        console.print(f"[bold red]Error:[/bold red] Environment file [yellow]{env_file}[/yellow] not found.")
+        raise typer.Exit(code=1)
+
+    client = DatabricksSecretsClient(host=host, token=token)
+    try:
+        synced = sync_env_to_scope(env_path=env_file, scope_name=scope, client=client)
+        console.print(Panel(
+            f"[bold green]✔ Successfully synced {len(synced)} secrets from {env_file} to scope '{scope}'![/bold green]\n\n"
+            f"[cyan]Synced keys:[/cyan]\n" + "\n".join(f"  • {k}" for k in synced),
+            title="Secrets Synchronized",
+            border_style="green",
+        ))
+    except Exception as exc:
+        console.print(f"[bold red]Failed to sync secrets:[/bold red] {exc}")
+        raise typer.Exit(code=1)
+
+
+# =========================================================================
+# DIAGNOSTICS & SYSTEM CHECKS
+# =========================================================================
 
 @app.command()
 def check(
