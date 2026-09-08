@@ -246,6 +246,23 @@ forge job create --file workflow.yaml --serverless
 forge job run <job_id>
 ```
 
+### 13. Exemplo Completo Medallion Architecture (`examples/medallion_lakehouse`)
+O repositório inclui uma implementação de referência de arquitetura Medallion ponta a ponta pronta para execução em nuvem:
+
+<div align="center">
+
+![Databricks Medallion Workflow Run](assets/databricks_medallion_workflow_run.png)
+
+*Execução real do pipeline multi-tarefa em Databricks Serverless Compute (Job ID: `848218251032084`, Run ID: `161261441194729`)*
+
+</div>
+
+Para executar este exemplo diretamente no seu workspace:
+```bash
+forge job run-dag --file examples/medallion_lakehouse/workflow.yaml --workspace-base /Shared/medallion_lakehouse --serverless
+```
+Consulte o guia completo em [`examples/medallion_lakehouse/README.md`](examples/medallion_lakehouse/README.md).
+
 ---
 
 ## 🧰 Referência Completa de Comandos
