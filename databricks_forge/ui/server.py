@@ -20,8 +20,10 @@ from pydantic import BaseModel
 
 from databricks_forge.ai.agent import SemanticAgent
 from databricks_forge.ai.ollama_client import OllamaClient
+from databricks_forge.core.ci_runner import CIQualityGateRunner
 from databricks_forge.core.client import DatabricksCEClient
 from databricks_forge.core.git_ops import GitOpsManager
+from databricks_forge.core.workflow import DAGWorkflow
 from databricks_forge.semantic.introspector import CatalogIntrospector
 from databricks_forge.semantic.registry import SemanticRegistry
 
@@ -39,6 +41,15 @@ class ApproveETLRequest(BaseModel):
     code: str
     run_databricks: bool = True
     push_git: bool = True
+
+
+class DeployPipelineRequest(BaseModel):
+    pipeline_name: str
+    code: str
+    source_table: Optional[str] = "bronze_raw_transactions"
+    target_table: Optional[str] = "silver_transactions"
+    run_databricks: Optional[bool] = True
+    push_git: Optional[bool] = True
 
 
 # OpenAI-compatible API schemas
@@ -75,6 +86,7 @@ def create_app() -> FastAPI:
     registry = SemanticRegistry.load()
     agent = SemanticAgent(ollama_client=ollama, registry=registry)
     git_ops = GitOpsManager()
+    ci_runner = CIQualityGateRunner()
 
     dbx_host = os.environ.get("DATABRICKS_HOST", "")
     dbx_token = os.environ.get("DATABRICKS_TOKEN", "")
@@ -250,6 +262,131 @@ def create_app() -> FastAPI:
             },
         )
 
+    @app.post("/api/etl/deploy-pipeline")
+    async def deploy_pipeline(req: DeployPipelineRequest):
+        """Streams real-time progress for the 4-step pipeline deployment:
+        1. Save script, unit test, and DAG
+        2. Git commit & push
+        3. CI Quality Gate (pytest execution)
+        4. Databricks Serverless Jobs API v2.1 dispatch
+        """
+        async def event_generator():
+            try:
+                # STEP 1: Persist files
+                yield f"data: {json.dumps({'step': 'saving', 'status': 'in_progress', 'message': 'Gravando script em notebooks/ e teste unitário em tests/...'})}\n\n"
+                await asyncio.sleep(0.05)
+
+                save_res = agent.etl_agent.save_pipeline_files(
+                    pipeline_name=req.pipeline_name,
+                    code=req.code,
+                    source_table=req.source_table or "bronze_raw_transactions",
+                    target_table=req.target_table or "silver_transactions",
+                )
+                pipeline_file = save_res["pipeline_file"]
+                test_file = save_res["test_file"]
+                workflow_file = save_res["workflow_file"]
+
+                yield f"data: {json.dumps({'step': 'saving', 'status': 'completed', 'message': 'Arquivos salvos e workflow.yaml atualizado.', 'pipeline_file': pipeline_file, 'test_file': test_file, 'workflow_file': workflow_file})}\n\n"
+
+                # STEP 2: GitOps Commit & Push
+                commit_hash = "local"
+                branch = "main"
+                if req.push_git:
+                    yield f"data: {json.dumps({'step': 'git', 'status': 'in_progress', 'message': 'Comitando e enviando para o GitHub...'})}\n\n"
+                    await asyncio.sleep(0.05)
+
+                    git_res = git_ops.commit_and_push(
+                        file_paths=[pipeline_file, test_file, workflow_file],
+                        message=f"feat(etl): add {req.pipeline_name} pipeline and unit test via OpenWebUI",
+                    )
+                    commit_hash = git_res.get("commit_hash", "local")
+                    branch = git_res.get("branch", "main")
+                    git_msg = (
+                        f"Commit {commit_hash} enviado para origin/{branch}."
+                        if git_res.get("success")
+                        else f"Commit local {commit_hash} ({git_res.get('error', '')})"
+                    )
+
+                    yield f"data: {json.dumps({'step': 'git', 'status': 'completed', 'message': git_msg, 'commit_hash': commit_hash, 'branch': branch})}\n\n"
+                else:
+                    yield f"data: {json.dumps({'step': 'git', 'status': 'skipped', 'message': 'Etapa de Git ignorada.'})}\n\n"
+
+                # STEP 3: CI Quality Gate (PyTest)
+                yield f"data: {json.dumps({'step': 'ci', 'status': 'in_progress', 'message': f'Executando PyTest em {Path(test_file).name}...'})}\n\n"
+                ci_result = await ci_runner.run_local_tests_async(test_path=test_file, timeout_sec=60)
+
+                ci_summary = ci_result.get("summary", "")
+                if not ci_result.get("success"):
+                    # STRICT GATING: abort Databricks dispatch!
+                    yield f"data: {json.dumps({'step': 'ci', 'status': 'failed', 'message': f'Quality Gate FALHOU: {ci_summary}', 'output': ci_result.get('output', '')})}\n\n"
+                    yield f"data: {json.dumps({'step': 'error', 'status': 'blocked', 'message': 'Disparo no Databricks BLOQUEADO devido a falha nos testes unitários.'})}\n\n"
+                    return
+
+                yield f"data: {json.dumps({'step': 'ci', 'status': 'completed', 'message': f'Quality Gate Aprovado: {ci_summary}', 'passed': ci_result.get('passed'), 'duration': ci_result.get('duration_sec')})}\n\n"
+
+                # STEP 4: Databricks Jobs API v2.1 Dispatch
+                if req.run_databricks:
+                    yield f"data: {json.dumps({'step': 'databricks', 'status': 'in_progress', 'message': 'Compilando DAG e disparando Databricks Jobs API v2.1 (Serverless)...'})}\n\n"
+                    await asyncio.sleep(0.05)
+
+                    dbx_info = {}
+                    if dbx_client:
+                        try:
+                            # 1. Upload notebook to workspace
+                            remote_path = f"/Shared/forge_deployments/{req.pipeline_name}"
+                            dbx_client.upload_file(pipeline_file, remote_path, overwrite=True)
+
+                            # 2. Compile DAG
+                            dag = DAGWorkflow.from_yaml(Path(workflow_file))
+                            payload = dag.to_databricks_jobs_api_payload(serverless=True)
+
+                            # 3. Create or run job
+                            job_resp = dbx_client.create_job(payload)
+                            job_id = job_resp.get("job_id")
+                            if job_id:
+                                run_resp = dbx_client.run_job(job_id)
+                                run_id = run_resp.get("run_id")
+                                run_url = f"{dbx_host}/#job/{job_id}/run/{run_id}" if dbx_host else None
+                                dbx_info = {
+                                    "job_id": job_id,
+                                    "run_id": run_id,
+                                    "run_url": run_url,
+                                    "message": f"Job #{job_id} disparado com sucesso! Run ID: {run_id}",
+                                }
+                            else:
+                                dbx_info = {"message": "Job compilado no Databricks."}
+                        except Exception as d_err:
+                            logger.warning(f"Databricks execution error: {d_err}")
+                            dbx_info = {
+                                "simulated": True,
+                                "message": f"DAG compilada via Kahn's Algorithm. Aviso Databricks: {d_err}",
+                            }
+                    else:
+                        dbx_info = {
+                            "simulated": True,
+                            "message": "DAG validada com sucesso via Kahn's Algorithm (Modo Local/Offline - configure DATABRICKS_TOKEN para disparo remoto).",
+                        }
+
+                    yield f"data: {json.dumps({'step': 'databricks', 'status': 'completed', 'message': dbx_info.get('message'), 'job_id': dbx_info.get('job_id'), 'run_id': dbx_info.get('run_id'), 'run_url': dbx_info.get('run_url')})}\n\n"
+                else:
+                    yield f"data: {json.dumps({'step': 'databricks', 'status': 'skipped', 'message': 'Disparo no Databricks ignorado pelo usuário.'})}\n\n"
+
+                yield f"data: {json.dumps({'step': 'done', 'status': 'success', 'message': 'Esteira completa concluída com sucesso!'})}\n\n"
+
+            except Exception as e:
+                logger.exception("Deploy pipeline error")
+                yield f"data: {json.dumps({'step': 'error', 'status': 'failed', 'message': str(e)})}\n\n"
+
+        return StreamingResponse(
+            event_generator(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        )
+
     @app.post("/api/etl/approve")
     def approve_etl(req: ApproveETLRequest):
         """Persists pipeline script, updates DAG, runs in Databricks, and pushes to GitHub."""
@@ -259,14 +396,30 @@ def create_app() -> FastAPI:
                 code=req.code,
             )
 
+            # CI Quality Gate Check
+            ci_res = ci_runner.run_local_tests(test_path=save_res.get("test_file"))
+            if not ci_res.get("success"):
+                return JSONResponse(
+                    status_code=400,
+                    content={
+                        "success": False,
+                        "ci_failed": True,
+                        "error": f"Quality Gate FALHOU no pytest: {ci_res.get('summary')}",
+                        "output": ci_res.get("output", ""),
+                    },
+                )
+
             dbx_message = "DAG local validada com sucesso via Algoritmo de Kahn."
             if req.run_databricks and dbx_client:
                 dbx_message = "Disparado com sucesso no Databricks Jobs API (Serverless)."
 
             git_result = {"success": True, "commit_hash": "local-only", "branch": "main"}
             if req.push_git:
+                files_to_commit = [save_res["pipeline_file"], save_res["workflow_file"]]
+                if save_res.get("test_file"):
+                    files_to_commit.append(save_res["test_file"])
                 git_result = git_ops.commit_and_push(
-                    file_paths=[save_res["pipeline_file"], save_res["workflow_file"]],
+                    file_paths=files_to_commit,
                     message=f"feat(etl): add {req.pipeline_name} pipeline via semantic agent",
                 )
 
@@ -274,7 +427,9 @@ def create_app() -> FastAPI:
                 "success": True,
                 "pipeline_name": req.pipeline_name,
                 "pipeline_file": save_res["pipeline_file"],
+                "test_file": save_res.get("test_file"),
                 "workflow_file": save_res["workflow_file"],
+                "ci_status": ci_res.get("summary", "Aprovado"),
                 "commit_hash": git_result.get("commit_hash", "saved"),
                 "branch": git_result.get("branch", "main"),
                 "databricks_status": dbx_message,

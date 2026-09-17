@@ -48,13 +48,29 @@ def test_etl_agent_save_pipeline_and_update_dag(mock_avail, tmp_path: Path):
     )
 
     pipeline_path = Path(res["pipeline_file"])
+    test_path = Path(res["test_file"])
     assert pipeline_path.exists()
+    assert test_path.exists()
     assert wf_file.exists()
+
+    # Validate test content
+    test_content = test_path.read_text(encoding="utf-8")
+    assert "def test_step_silver_validation" in test_content
+    assert "def test_step_silver_execution_mock" in test_content
 
     # Validate resulting DAG with DAGWorkflow
     dag = DAGWorkflow.from_yaml(wf_file)
     assert len(dag.tasks) == 1
     assert dag.tasks[0].name == "step_silver"
+
+
+def test_etl_agent_generate_unit_test():
+    agent = ETLAgent()
+    test_code = agent.generate_pipeline_test("my_pipe", "bronze_in", "silver_out")
+    assert "def test_my_pipe_validation" in test_code
+    assert "def test_my_pipe_execution_mock" in test_code
+    assert "bronze_in" in test_code
+    assert "silver_out" in test_code
 
 
 def test_etl_agent_mermaid_pipeline():

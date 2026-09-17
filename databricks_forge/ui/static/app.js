@@ -550,7 +550,12 @@ function appendAssistantMessageContainer() {
             <span class="p-1 rounded-lg bg-brand/20 text-brand"><i data-lucide="cpu" class="w-4 h-4"></i></span>
             <h4 class="font-bold text-sm text-white">${proposal.pipeline_name}</h4>
           </div>
-          <span class="text-[11px] px-2 py-0.5 rounded bg-surfaceBorder text-gray-300 font-mono">PySpark Delta</span>
+          <div class="flex items-center gap-1.5">
+            <span class="text-[10px] px-2 py-0.5 rounded bg-surfaceBorder text-gray-300 font-mono">PySpark Delta</span>
+            <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono flex items-center gap-1">
+              <i data-lucide="shield-check" class="w-3 h-3"></i> CI Quality Gate
+            </span>
+          </div>
         </div>
         <div class="flex items-center gap-2 text-xs text-gray-400">
           <span>Origem: <code class="text-cyberCyan">${proposal.source_table}</code></span>
@@ -561,55 +566,229 @@ function appendAssistantMessageContainer() {
           <pre><code class="language-python">${escapeHtml(proposal.code)}</code></pre>
         </div>
         <div class="pt-2 flex items-center justify-between border-t border-surfaceBorder">
-          <span class="text-[11px] text-gray-400">Validação e commit automático</span>
+          <span class="text-[11px] text-gray-400">Esteira automatizada: Código ➔ Commit ➔ CI ➔ Databricks</span>
           <button class="approve-etl-btn flex items-center space-x-1.5 bg-gradient-to-r from-brand to-brandDark hover:brightness-110 text-white text-xs px-4 py-2 rounded-xl font-semibold shadow-md shadow-brand/20 transition active:scale-95">
             <i data-lucide="rocket" class="w-3.5 h-3.5"></i>
-            <span>Executar no Databricks & Enviar para GitHub</span>
+            <span>Aprovar Esteira Completa</span>
           </button>
         </div>
-        <div class="etl-status-log hidden text-xs p-3 rounded-lg bg-surfaceDark/80 border border-surfaceBorder space-y-1"></div>
+
+        <!-- 4-Step CI/CD Pipeline Stepper -->
+        <div class="pipeline-stepper hidden space-y-2">
+          <div class="text-xs font-semibold text-gray-200 flex items-center justify-between pb-1 border-b border-surfaceBorder">
+            <span class="flex items-center gap-1.5">
+              <i data-lucide="workflow" class="w-3.5 h-3.5 text-cyberCyan"></i>
+              Esteira de CI/CD & Deploy Databricks
+            </span>
+            <span class="stepper-status-badge text-[10px] px-2 py-0.5 rounded bg-surfaceBorder text-gray-400">Pronto</span>
+          </div>
+
+          <!-- Step 1: Saving & Test Generation -->
+          <div class="step-row" id="step-saving">
+            <div class="step-icon-box"><i data-lucide="file-code" class="w-3.5 h-3.5"></i></div>
+            <div class="flex-1 text-xs">
+              <div class="font-semibold text-gray-200">1. Persistência de Código & Teste Unitário</div>
+              <div class="step-desc text-[11px] text-gray-400">Aguardando início...</div>
+            </div>
+          </div>
+
+          <!-- Step 2: Git Commit & Push -->
+          <div class="step-row" id="step-git">
+            <div class="step-icon-box"><i data-lucide="git-branch" class="w-3.5 h-3.5"></i></div>
+            <div class="flex-1 text-xs">
+              <div class="font-semibold text-gray-200">2. GitOps Commit & Push</div>
+              <div class="step-desc text-[11px] text-gray-400">Aguardando etapa anterior...</div>
+            </div>
+          </div>
+
+          <!-- Step 3: CI Quality Gate (PyTest) -->
+          <div class="step-row" id="step-ci">
+            <div class="step-icon-box"><i data-lucide="flask-conical" class="w-3.5 h-3.5"></i></div>
+            <div class="flex-1 text-xs">
+              <div class="font-semibold text-gray-200">3. Quality Gate de CI (PyTest)</div>
+              <div class="step-desc text-[11px] text-gray-400">Aguardando etapa anterior...</div>
+              <div class="step-log-output hidden"></div>
+            </div>
+          </div>
+
+          <!-- Step 4: Databricks Job Dispatch -->
+          <div class="step-row" id="step-databricks">
+            <div class="step-icon-box"><i data-lucide="zap" class="w-3.5 h-3.5"></i></div>
+            <div class="flex-1 text-xs">
+              <div class="font-semibold text-gray-200">4. Disparo do Job no Databricks (Serverless)</div>
+              <div class="step-desc text-[11px] text-gray-400">Aguardando aprovação dos testes...</div>
+              <div class="step-link-container pt-1.5 hidden"></div>
+            </div>
+          </div>
+        </div>
       `;
 
       // Syntax highlight
       hljs.highlightElement(card.querySelector('code'));
 
       const approveBtn = card.querySelector('.approve-etl-btn');
-      const statusLog = card.querySelector('.etl-status-log');
+      const stepper = card.querySelector('.pipeline-stepper');
+      const statusBadge = card.querySelector('.stepper-status-badge');
+
+      const stepSaving = card.querySelector('#step-saving');
+      const stepGit = card.querySelector('#step-git');
+      const stepCI = card.querySelector('#step-ci');
+      const stepDatabricks = card.querySelector('#step-databricks');
+
+      function updateStep(elem, state, message) {
+        elem.classList.remove('active', 'completed', 'failed', 'blocked');
+        const iconBox = elem.querySelector('.step-icon-box');
+        const desc = elem.querySelector('.step-desc');
+
+        if (state === 'active') {
+          elem.classList.add('active');
+          iconBox.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i>';
+        } else if (state === 'completed') {
+          elem.classList.add('completed');
+          iconBox.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i>';
+        } else if (state === 'failed') {
+          elem.classList.add('failed');
+          iconBox.innerHTML = '<i data-lucide="x" class="w-3.5 h-3.5 text-red-400"></i>';
+        } else if (state === 'blocked') {
+          elem.classList.add('blocked');
+          iconBox.innerHTML = '<i data-lucide="shield-alert" class="w-3.5 h-3.5 text-amber-400"></i>';
+        }
+
+        if (message) {
+          desc.innerHTML = message;
+        }
+        lucide.createIcons();
+      }
 
       approveBtn.addEventListener('click', async () => {
         approveBtn.disabled = true;
-        approveBtn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>Executando...</span>';
-        statusLog.classList.remove('hidden');
-        statusLog.innerHTML = '<div>⏳ Gravando script em <code>notebooks/</code> e atualizando <code>workflow.yaml</code>...</div>';
+        approveBtn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>Esteira em Execução...</span>';
+        stepper.classList.remove('hidden');
+        statusBadge.textContent = 'Em execução';
+        statusBadge.className = 'stepper-status-badge text-[10px] px-2 py-0.5 rounded bg-cyberCyan/10 text-cyberCyan border border-cyberCyan/20';
 
         try {
-          const res = await fetch('/api/etl/approve', {
+          const res = await fetch('/api/etl/deploy-pipeline', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               pipeline_name: proposal.pipeline_name,
               code: proposal.code,
+              source_table: proposal.source_table,
+              target_table: proposal.target_table,
+              run_databricks: true,
+              push_git: true,
             }),
           });
-          const result = await res.json();
-          if (result.success) {
-            statusLog.innerHTML = `
-              <div class="text-emerald-400 font-semibold">✅ Pipeline Executado com Sucesso!</div>
-              <div>🧊 Databricks: ${result.databricks_status}</div>
-              <div>🐙 GitHub Commit: <code class="text-cyberCyan">${result.commit_hash}</code> na branch <code>${result.branch}</code></div>
-            `;
-            approveBtn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5"></i><span>Sincronizado!</span>';
-            approveBtn.className = 'approve-etl-btn flex items-center space-x-1.5 bg-emerald-600 text-white text-xs px-4 py-2 rounded-xl font-semibold cursor-default';
-            showToast('🎉 Pipeline comitado e enviado para o GitHub!');
-          } else {
-            statusLog.innerHTML = `<div class="text-red-400">❌ Falha: ${result.error}</div>`;
-            approveBtn.disabled = false;
-            approveBtn.innerHTML = '<span>Tentar Novamente</span>';
+
+          if (!res.ok) {
+            throw new Error(`HTTP Error: ${res.status}`);
+          }
+
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = '';
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop();
+
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (!trimmed.startsWith('data: ')) continue;
+              const jsonStr = trimmed.substring(6);
+              try {
+                const data = JSON.parse(jsonStr);
+
+                // Step 1: Saving
+                if (data.step === 'saving') {
+                  if (data.status === 'in_progress') {
+                    updateStep(stepSaving, 'active', data.message);
+                  } else if (data.status === 'completed') {
+                    updateStep(stepSaving, 'completed', `Salvo em <code>notebooks/${proposal.pipeline_name}.py</code> e <code>tests/test_etl_${proposal.pipeline_name}.py</code>`);
+                  }
+                }
+
+                // Step 2: Git
+                if (data.step === 'git') {
+                  if (data.status === 'in_progress') {
+                    updateStep(stepGit, 'active', data.message);
+                  } else if (data.status === 'completed') {
+                    updateStep(stepGit, 'completed', `Commit <code class="text-cyberCyan">${data.commit_hash}</code> na branch <code>${data.branch}</code>`);
+                  }
+                }
+
+                // Step 3: CI Quality Gate
+                if (data.step === 'ci') {
+                  if (data.status === 'in_progress') {
+                    updateStep(stepCI, 'active', data.message);
+                  } else if (data.status === 'completed') {
+                    updateStep(stepCI, 'completed', `<span class="text-emerald-400 font-medium">100% Verde</span>: ${data.message}`);
+                  } else if (data.status === 'failed') {
+                    updateStep(stepCI, 'failed', `<span class="text-red-400 font-medium">${data.message}</span>`);
+                    if (data.output) {
+                      const logBox = stepCI.querySelector('.step-log-output');
+                      logBox.classList.remove('hidden');
+                      logBox.textContent = data.output;
+                    }
+                  }
+                }
+
+                // Blocked Step (if CI failed)
+                if (data.step === 'error' && data.status === 'blocked') {
+                  updateStep(stepDatabricks, 'blocked', '<span class="text-amber-400 font-semibold">Deploy cancelado</span>: Bloqueado pelo Quality Gate de CI.');
+                  statusBadge.textContent = 'Falha no CI';
+                  statusBadge.className = 'stepper-status-badge text-[10px] px-2 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/20';
+                  approveBtn.disabled = false;
+                  approveBtn.innerHTML = '<span>Corrigir e Tentar Novamente</span>';
+                  showToast('❌ Esteira interrompida: testes unitários falharam!', true);
+                }
+
+                // Step 4: Databricks
+                if (data.step === 'databricks') {
+                  if (data.status === 'in_progress') {
+                    updateStep(stepDatabricks, 'active', data.message);
+                  } else if (data.status === 'completed') {
+                    updateStep(stepDatabricks, 'completed', data.message);
+                    if (data.run_url) {
+                      const linkBox = stepDatabricks.querySelector('.step-link-container');
+                      linkBox.classList.remove('hidden');
+                      linkBox.innerHTML = `
+                        <a href="${data.run_url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyberCyan/10 hover:bg-cyberCyan/20 text-cyberCyan border border-cyberCyan/30 transition text-xs font-semibold">
+                          <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                          <span>Abrir Execução no Databricks</span>
+                        </a>
+                      `;
+                      lucide.createIcons();
+                    }
+                  }
+                }
+
+                // Done
+                if (data.step === 'done') {
+                  statusBadge.textContent = 'Aprovado 100%';
+                  statusBadge.className = 'stepper-status-badge text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+                  approveBtn.innerHTML = '<i data-lucide="check-circle" class="w-3.5 h-3.5"></i><span>Esteira Concluída!</span>';
+                  approveBtn.className = 'approve-etl-btn flex items-center space-x-1.5 bg-emerald-600 text-white text-xs px-4 py-2 rounded-xl font-semibold cursor-default';
+                  showToast('🎉 Pipeline testado, comitado e disparado no Databricks!');
+                  lucide.createIcons();
+                }
+
+              } catch (parseErr) {
+                console.warn('Failed to parse SSE message:', parseErr, trimmed);
+              }
+            }
           }
         } catch (err) {
-          statusLog.innerHTML = `<div class="text-red-400">❌ Erro de rede: ${err.message}</div>`;
+          statusBadge.textContent = 'Erro de Rede';
+          statusBadge.className = 'stepper-status-badge text-[10px] px-2 py-0.5 rounded bg-red-500/10 text-red-400';
           approveBtn.disabled = false;
           approveBtn.innerHTML = '<span>Tentar Novamente</span>';
+          showToast(`Erro de conexão: ${err.message}`, true);
         }
         lucide.createIcons();
       });
