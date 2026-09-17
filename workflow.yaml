@@ -1,0 +1,10 @@
+name: lakehouse_dag
+compute:
+  cloud: aws
+  node_type_id: i3.xlarge
+  num_workers: 0
+tasks:
+- name: clean_silver_pipeline
+  type: notebook
+  file: notebooks/clean_silver_pipeline.py
+  depends_on: []
