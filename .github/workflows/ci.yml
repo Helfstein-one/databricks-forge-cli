@@ -7,13 +7,51 @@ on:
     branches: [ "main", "master" ]
 
 jobs:
-  test:
-    name: Test on Python ${{ matrix.python-version }}
+  # ─────────────────────────────────────────────────
+  # Stage 1: Lint & Static Analysis
+  # ─────────────────────────────────────────────────
+  lint:
+    name: "🔍 Lint & Format Check"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,ui]"
+
+      - name: Check Python Syntax (py_compile)
+        run: |
+          python -m py_compile databricks_forge/core/ci_runner.py
+          python -m py_compile databricks_forge/ai/etl_agent.py
+          python -m py_compile databricks_forge/ui/server.py
+          python -m py_compile databricks_forge/core/client.py
+          python -m py_compile databricks_forge/core/workflow.py
+
+      - name: Verify package imports
+        run: |
+          python -c "from databricks_forge.core.ci_runner import CIQualityGateRunner; print('✅ ci_runner OK')"
+          python -c "from databricks_forge.ai.etl_agent import ETLAgent; print('✅ etl_agent OK')"
+          python -c "from databricks_forge.ui.server import create_app; print('✅ server OK')"
+
+  # ─────────────────────────────────────────────────
+  # Stage 2: Unit Tests (per module)
+  # ─────────────────────────────────────────────────
+  test-core:
+    name: "🧪 Core Tests (Py ${{ matrix.python-version }})"
+    needs: lint
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -29,6 +67,119 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev,ui]"
 
-      - name: Run Test Suite
+      - name: "Run Core Module Tests"
         run: |
-          pytest tests/ -v
+          pytest tests/test_client.py tests/test_workflow.py tests/test_logging.py tests/test_secrets.py tests/test_compute.py tests/test_formats.py tests/test_packaging.py -v
+
+  test-ai:
+    name: "🤖 AI & Semantic Tests (Py ${{ matrix.python-version }})"
+    needs: lint
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,ui]"
+
+      - name: "Run AI Agent & Semantic Tests"
+        run: |
+          pytest tests/test_ai_agent.py tests/test_etl_agent.py tests/test_ollama.py tests/test_semantic.py tests/test_sql.py -v
+
+  test-ci-runner:
+    name: "🔧 CI Runner Tests (Py ${{ matrix.python-version }})"
+    needs: lint
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,ui]"
+
+      - name: "Run CI Runner & Pipeline Tests"
+        run: |
+          pytest tests/test_ci_runner.py tests/test_generator.py tests/test_cli.py -v
+
+  test-ui:
+    name: "💬 UI Server & API Tests (Py ${{ matrix.python-version }})"
+    needs: lint
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,ui]"
+
+      - name: "Run UI Server & Integration Tests"
+        run: |
+          pytest tests/test_ui_server.py tests/test_streaming_module.py tests/test_connectors.py tests/test_iceberg.py tests/test_tuning.py -v
+
+  # ─────────────────────────────────────────────────
+  # Stage 3: Full Suite Validation Gate
+  # ─────────────────────────────────────────────────
+  quality-gate:
+    name: "🏁 Quality Gate (Full Suite)"
+    needs: [test-core, test-ai, test-ci-runner, test-ui]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,ui]"
+
+      - name: "Run Full Test Suite (117+ tests)"
+        run: |
+          pytest tests/ -v --tb=short
+
+      - name: "Validate DAG (Kahn's Algorithm)"
+        run: |
+          python -c "
+          from databricks_forge.core.workflow import DAGWorkflow
+          dag = DAGWorkflow.from_yaml('workflow.yaml')
+          order = dag.validate_dag()
+          print(f'✅ DAG validada: {order}')
+          "
