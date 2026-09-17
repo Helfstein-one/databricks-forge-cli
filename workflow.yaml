@@ -8,3 +8,8 @@ tasks:
   type: notebook
   file: notebooks/clean_silver_pipeline.py
   depends_on: []
+- name: dedup_silver_transactions
+  type: notebook
+  file: notebooks/dedup_silver_transactions.py
+  depends_on:
+  - clean_silver_pipeline
