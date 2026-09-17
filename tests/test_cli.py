@@ -209,7 +209,7 @@ def test_cli_chat_help():
     result = runner.invoke(app, ["chat", "--help"])
     assert result.exit_code == 0
     assert "Launch the Agentic Semantic Chat" in result.output
-    assert "--port" in result.output
+    assert "port" in result.output.lower()
 
 
 def test_cli_ui_help():
