@@ -69,10 +69,10 @@ O arquivo [`docs/architecture.drawio`](docs/architecture.drawio) foi totalmente 
 # Instalação direta via pip do repositório
 pip install git+https://github.com/Helfstein-one/databricks-forge-cli.git
 
-# Ou clone para desenvolvimento local
+# Ou clone para desenvolvimento local (incluindo dev e UI do Streamlit)
 git clone https://github.com/Helfstein-one/databricks-forge-cli.git
 cd databricks-forge-cli
-pip install -e ".[dev]"
+pip install -e ".[dev,ui]"
 ```
 
 Comandos disponíveis no terminal: `forge` ou `databricks-forge`.
@@ -118,19 +118,28 @@ api_key = get_secret("retail_scope", "api_key")
 ### 4. Executar e Implantar Scripts SQL
 ```bash
 # Executa localmente contra o Delta Lake
-forge sql run sql/01_clean_transactions.sql
+forge sql run sql/01_clean_transactions.sql --mode local
 
-# Faz deploy no Databricks Workspace
-forge sql deploy sql/01_clean_transactions.sql --target-path "/Shared/retail_lakehouse/sql/clean"
+# Faz deploy no Workspace do Databricks
+forge sql deploy sql/01_clean_transactions.sql --target-dir /Shared/sql
 ```
 
-### 5. Compilar o Wheel e Fazer o Deploy no Databricks CE
+### 5. Iniciar o Front Agentico & Camada Semântica (`forge chat`)
+```bash
+# Inicia a interface web interativa do agente em http://localhost:8501
+forge chat
+
+# Ou use o alias:
+forge ui --port 8501
+```
+
+### 6. Compilar o Wheel e Fazer o Deploy no Databricks CE
 ```bash
 forge build
 forge deploy --target-path "/Shared/forge_deployments/retail_lakehouse"
 ```
 
-### 6. Executar Ingestão Streaming com Delta Lake & Watermarking
+### 7. Executar Ingestão Streaming com Delta Lake & Watermarking
 O projeto scaffolded vem com template completo de **Structured Streaming**:
 ```bash
 # Executa localmente em modo micro-batch (AvailableNow)
@@ -141,7 +150,7 @@ No Databricks CE, execute o notebook `notebooks/run_streaming_notebook.py` com w
 - **`watermark_delay`**: atraso tolerado para dados tardios (ex: `10 minutes`).
 - **`checkpoint_dir`**: diretório de checkpoint para garantia *exactly-once*.
 
-### 7. Otimização de Performance Delta & Spark AQE
+### 8. Otimização de Performance Delta & Spark AQE
 ```bash
 # Inspeciona perfis de configuração recomendados (AQE, Auto-Compact, Coalescing)
 forge tune config --profile balanced
@@ -153,7 +162,7 @@ forge tune optimize transactions_silver --zorder user_id,date
 forge tune vacuum transactions_silver --retention 168
 ```
 
-### 8. Logging Estruturado & Auditoria de Pipelines
+### 9. Logging Estruturado & Auditoria de Pipelines
 O módulo `logging.py` do projeto scaffolded fornece telemetria pronta para produção:
 ```python
 from retail_lakehouse.logging import setup_pipeline_logging, pipeline_audit_step
@@ -168,7 +177,7 @@ def process_customers(df):
 ```
 As métricas também podem ser persistidas na tabela Delta `pipeline_execution_audit`.
 
-### 9. Conversão & Inspeção Multi-Formato (`forge data`)
+### 10. Conversão & Inspeção Multi-Formato (`forge data`)
 Ingira e converta arquivos entre qualquer formato aberto:
 ```bash
 # Inspeciona metadados, formato inferido e tamanho do arquivo ou diretório
@@ -188,7 +197,7 @@ df = read_dataset(spark, "raw/events.avro")
 write_dataset(df, "silver_events", format="delta", partition_by=["date"])
 ```
 
-### 10. Tabelas Apache Iceberg & Delta UniForm (`forge iceberg`)
+### 11. Tabelas Apache Iceberg & Delta UniForm (`forge iceberg`)
 Habilite interoperabilidade aberta gerando metadados Apache Iceberg em tabelas Delta Lake sem custos de duplicação:
 ```bash
 # Ativa Delta UniForm Iceberg na tabela Silver
@@ -202,7 +211,7 @@ forge iceberg snapshots transactions_silver
 ```
 No Databricks CE, execute o notebook `notebooks/run_multiformat_notebook.py` para visualizar a ingestão heterogênea e ativação do UniForm em tempo real.
 
-### 11. Conectores de Bancos de Dados & Reverse-ETL (`forge connector`)
+### 12. Conectores de Bancos de Dados & Reverse-ETL (`forge connector`)
 Integre até 8 bancos de dados relacionais, NoSQL e data warehouses externos (PostgreSQL, MySQL, SQL Server, Oracle, Snowflake, MongoDB, BigQuery, SQLite):
 ```bash
 # Lista todos os motores de banco de dados suportados, drivers e portas padrão
@@ -241,7 +250,7 @@ write_database_table(
 ```
 No Databricks CE, execute o notebook interativo `notebooks/run_database_connectors_notebook.py` para testar ingestão e Reverse-ETL com widgets configuráveis.
 
-### 12. Execução Remota de Jobs & Workflows Serverless (`forge job`)
+### 13. Execução Remota de Jobs & Workflows Serverless (`forge job`)
 Execute pipelines completos na nuvem da Databricks com resolução topológica de dependências e monitoramento em tempo real:
 ```bash
 # 1. Executa e transmite o status de todas as tarefas da DAG no Databricks
@@ -254,7 +263,7 @@ forge job create --file workflow.yaml --serverless
 forge job run <job_id>
 ```
 
-### 13. Exemplo Completo Medallion Architecture (`examples/medallion_lakehouse`)
+### 14. Exemplo Completo Medallion Architecture (`examples/medallion_lakehouse`)
 O repositório inclui uma implementação de referência de arquitetura Medallion ponta a ponta pronta para execução em nuvem:
 
 <div align="center">
@@ -273,12 +282,70 @@ Consulte o guia completo em [`examples/medallion_lakehouse/README.md`](examples/
 
 ---
 
+## 🤖 Front Agentico, Camada Semântica & Geração de ETL
+
+O **Databricks Forge CLI** conta com uma interface conversacional inteligente completa (`forge chat` / `forge ui`) construída com **Streamlit**, integrada nativamente a modelos de linguagem locais via **Ollama** (`llama3.2`, `deepseek-r1`), uma **Camada Semântica** ontológica conectada ao **Databricks Unity Catalog**, e um motor que transforma **Linguagem Natural em pipelines PySpark/SQL** com versionamento automático no GitHub.
+
+```mermaid
+graph LR
+    subgraph UI["Front-End Agentico (`forge chat`)"]
+        User["👤 Usuário (Chat / Prompt)"]
+        StreamlitUI["💬 Streamlit UI + Ollama Streaming"]
+        ApprovalCard["🛡️ Card de Aprovação (HITL)"]
+    end
+
+    subgraph LLM["IA Local (Ollama)"]
+        OllamaEngine["🦙 Ollama API (llama3.2 / deepseek-r1)"]
+    end
+
+    subgraph SEM["Camada Semântica"]
+        UCIntrospect["🔍 Unity Catalog Introspector"]
+        SemanticReg["📜 Modelos & Métricas YAML"]
+        MermaidGen["📊 Mermaid ERD & Lineage"]
+    end
+
+    subgraph PROD["Execução & Versionamento"]
+        PySparkGen["🔨 PySpark + Delta Lake Generator"]
+        DAGUpd["🌐 workflow.yaml (Topological DAG)"]
+        DatabricksRun["🚀 Databricks Jobs API (Serverless)"]
+        GitHubPush["🐙 Git Commit & Push Automático"]
+    end
+
+    User --> StreamlitUI
+    StreamlitUI <--> OllamaEngine
+    StreamlitUI --> UCIntrospect
+    UCIntrospect --> SemanticReg
+    SemanticReg --> MermaidGen
+    MermaidGen --> StreamlitUI
+    StreamlitUI --> PySparkGen
+    PySparkGen --> ApprovalCard
+    ApprovalCard --> DAGUpd
+    ApprovalCard --> DatabricksRun
+    ApprovalCard --> GitHubPush
+```
+
+### Funcionalidades:
+- **Camada Semântica Ontológica (`databricks_forge/semantic/`)**:
+  - Inspeciona tabelas e metadados do **Databricks Unity Catalog** (ou catálogo local de referência).
+  - Abstração em `Entity`, `Dimension`, `Metric` e `Relationship` persistida em `config/semantic_model.yaml`.
+  - Compilador AST que traduz intenções analíticas em consultas Spark SQL seguras sem alucinações.
+- **Visualizações Mermaid & Plotly em Tempo Real**:
+  - Geração dinâmica de diagramas de entidade-relacionamento (`erDiagram`), linhagem Medallion Bronze $\rightarrow$ Silver $\rightarrow$ Gold e fluxo dos pipelines.
+- **Geração de ETL via Linguagem Natural**:
+  - O agente interpreta a solicitação do usuário, sintetiza código PySpark pronto com `@pipeline_audit_step`, tratamento transacional Delta ACID e atualiza o `workflow.yaml`.
+- **Card de Aprovação Human-in-the-Loop & Git Push**:
+  - Pré-visualização do código e do diagrama com botão interativo para disparar a execução na Databricks Jobs API e persistir com commit/push automático na branch ativa do GitHub.
+
+---
+
 ## 🧰 Referência Completa de Comandos
 
 ### Comandos Centrais
 | Comando | Descrição |
 |---|---|
 | `forge init <name>` | Gera novo projeto Lakehouse com DAG, Docker, Chispa, Streaming, Formatos e CI/CD |
+| `forge chat` | Inicia o front-end conversacional com Ollama, camada semântica e geração de ETL |
+| `forge ui` | Alias para `forge chat` para iniciar a interface Web Streamlit |
 | `forge build` | Compila o pacote `.whl` do projeto |
 | `forge deploy` | Envia Wheel, SQLs e Master DAG Runner para o Databricks Workspace |
 | `forge check` | Diagnóstico de pré-requisitos (Python, Java, Docker, Databricks API) |

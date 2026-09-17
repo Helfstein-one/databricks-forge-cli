@@ -12,7 +12,7 @@ def test_cli_version():
     result = runner.invoke(app, ["--version"])
     assert result.exit_code == 0
     assert "Databricks Forge CLI" in result.output
-    assert "0.6.0" in result.output
+    assert "0.7.0" in result.output
 
 
 def test_cli_check():
@@ -203,3 +203,17 @@ def test_cli_job_run(mock_client_cls):
     assert "77777" in result.output
     assert "SUCCESS" in result.output
     mock_client.run_job.assert_called_once_with(job_id=88888)
+
+
+def test_cli_chat_help():
+    result = runner.invoke(app, ["chat", "--help"])
+    assert result.exit_code == 0
+    assert "Launch the Agentic Semantic Chat" in result.output
+    assert "--port" in result.output
+
+
+def test_cli_ui_help():
+    result = runner.invoke(app, ["ui", "--help"])
+    assert result.exit_code == 0
+    assert "Alias for 'forge chat'" in result.output
+

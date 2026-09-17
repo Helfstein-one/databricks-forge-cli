@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "databricks-forge-cli"
-version = "0.6.0"
+version = "0.7.0"
 description = "Industrial-grade CLI for scaffolding, testing, packaging, and deploying PySpark Lakehouse projects to Databricks Community Edition & Databricks Connect."
 readme = "README.md"
 authors = [
@@ -48,6 +48,10 @@ dev = [
     "pytest>=7.4.0",
     "pytest-mock>=3.12.0",
     "ruff>=0.1.0",
+]
+ui = [
+    "streamlit>=1.30.0",
+    "plotly>=5.18.0",
 ]
 
 [project.scripts]

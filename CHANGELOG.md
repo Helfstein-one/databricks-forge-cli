@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.7.0] - 2026-09-16
+
+### Added
+- **Agentic Semantic Chat & Natural Language ETL Pipeline Engine (`forge chat` / `forge ui`)**:
+  - **Semantic Layer (`databricks_forge/semantic/`)**:
+    - `models.py`: Data models for Entities, Dimensions, Metrics, Relationships, and `SemanticSchema` with YAML serialization.
+    - `registry.py`: Catalog registry with YAML storage (`config/semantic_model.yaml`), auto-discovery, and Mermaid generation (`to_mermaid_erd()`, `to_mermaid_lineage()`).
+    - `introspector.py`: Databricks Unity Catalog introspector harvesting catalogs, schemas, tables, and column metadata with offline fallback.
+    - `compiler.py`: Semantic AST SQL compiler translating metric requests into secure Spark SQL queries with dimension grouping and canonical joins.
+  - **Local Ollama AI Integration (`databricks_forge/ai/`)**:
+    - `ollama_client.py`: Local REST API client for Ollama (`http://localhost:11434`) supporting streaming, dynamic model listing (`llama3.2`, `deepseek-r1`), and connection verification.
+    - `agent.py`: Conversational agent routing intents between schema discovery, semantic SQL execution, Mermaid diagram rendering, and ETL generation.
+    - `etl_agent.py`: Natural Language to PySpark Delta Lake engine; synthesizes audited pipelines with `@pipeline_audit_step`, updates topological `workflow.yaml` DAGs, and generates Mermaid dataflow diagrams.
+    - `prompts.py`: Production-grade system prompts for Databricks Medallion architecture and PySpark best practices.
+  - **Automated Git Operations (`databricks_forge/core/git_ops.py`)**:
+    - Automated staging, commit messages (`feat(etl): ...`), and remote push to GitHub with full audit trails.
+  - **Interactive Agentic Web Frontend (`databricks_forge/ui/web/app.py`)**:
+    - Built on Streamlit with dark theme, dynamic Ollama model selector, Databricks connection status, interactive Unity Catalog explorer, inline Mermaid.js diagram viewer, and Human-in-the-Loop ETL approval cards.
+  - **New CLI Commands**:
+    - `forge chat` & `forge ui`: Launches the local agentic web interface with `--port`, `--host`, and `--headless` options.
+
+---
+
 ## [0.6.2] - 2026-09-08
 
 ### Added

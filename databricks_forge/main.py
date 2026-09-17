@@ -1384,5 +1384,54 @@ def check(
     console.print(table)
 
 
+# =========================================================================
+# AGENTIC SEMANTIC CHAT & ETL GENERATOR UI
+# =========================================================================
+
+@app.command(name="chat")
+def chat(
+    port: int = typer.Option(8501, "--port", "-p", help="Port for the Streamlit web server."),
+    host: str = typer.Option("localhost", "--host", "-h", help="Host address to bind to."),
+    no_browser: bool = typer.Option(False, "--no-browser", help="Do not open browser automatically."),
+):
+    """💬 Launch the Agentic Semantic Chat & ETL Generator UI (powered by Ollama & Streamlit)."""
+    console.print(Panel(
+        "[bold color(51)]⚡ Starting Databricks Forge Semantic Chat & ETL Generator UI[/bold color(51)]\n"
+        f"[dim]URL: http://{host}:{port}[/dim]",
+        border_style="color(201)",
+    ))
+
+    app_file = Path(__file__).parent / "ui" / "web" / "app.py"
+    cmd = [
+        sys.executable,
+        "-m",
+        "streamlit",
+        "run",
+        str(app_file),
+        "--server.port",
+        str(port),
+        "--server.address",
+        host,
+    ]
+    if no_browser:
+        cmd.extend(["--server.headless", "true"])
+
+    try:
+        subprocess.run(cmd)
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Stopping Databricks Forge UI...[/yellow]")
+
+
+@app.command(name="ui")
+def ui(
+    port: int = typer.Option(8501, "--port", "-p", help="Port for the Streamlit web server."),
+    host: str = typer.Option("localhost", "--host", "-h", help="Host address to bind to."),
+    no_browser: bool = typer.Option(False, "--no-browser", help="Do not open browser automatically."),
+):
+    """🌐 Alias for 'forge chat' - Launch the Agentic Web UI."""
+    chat(port=port, host=host, no_browser=no_browser)
+
+
 if __name__ == "__main__":
     app()
+
