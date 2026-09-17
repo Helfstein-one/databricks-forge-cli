@@ -208,7 +208,7 @@ def test_cli_job_run(mock_client_cls):
 def test_cli_chat_help():
     result = runner.invoke(app, ["chat", "--help"])
     assert result.exit_code == 0
-    assert "Launch the Agentic Semantic Chat" in result.output
+    assert "OpenWebUI Semantic Chat" in result.output
     assert "port" in result.output.lower()
 
 

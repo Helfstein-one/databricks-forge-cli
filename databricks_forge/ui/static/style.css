@@ -1,0 +1,147 @@
+/* Databricks Forge OpenWebUI Stylesheet */
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #30363d;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #484f58;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.message-fade-in {
+  animation: fadeIn 0.25s ease-out forwards;
+}
+
+/* Markdown typography */
+.prose {
+  color: #e6edf3;
+  line-height: 1.65;
+  font-size: 0.925rem;
+}
+
+.prose p {
+  margin-bottom: 0.75rem;
+}
+
+.prose h1, .prose h2, .prose h3, .prose h4 {
+  color: #ffffff;
+  font-weight: 700;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.prose ul, .prose ol {
+  padding-left: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.prose ul {
+  list-style-type: disc;
+}
+
+.prose ol {
+  list-style-type: decimal;
+}
+
+.prose li {
+  margin-bottom: 0.25rem;
+}
+
+.prose code:not(pre code) {
+  background-color: #1f242c;
+  color: #00F0FF;
+  padding: 0.15rem 0.35rem;
+  border-radius: 0.375rem;
+  font-size: 0.825em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.prose pre {
+  margin-top: 0.5rem;
+  margin-bottom: 0.75rem;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  border: 1px solid #30363d;
+  background-color: #161b22;
+}
+
+/* Thinking accordion for DeepSeek-R1 */
+.thinking-block {
+  background-color: rgba(22, 27, 34, 0.7);
+  border: 1px solid #30363d;
+  border-radius: 0.75rem;
+  margin-bottom: 1rem;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.thinking-header {
+  padding: 0.6rem 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  background-color: rgba(30, 36, 46, 0.4);
+  font-size: 0.775rem;
+  color: #8b949e;
+  user-select: none;
+}
+
+.thinking-header:hover {
+  background-color: rgba(30, 36, 46, 0.8);
+  color: #c9d1d9;
+}
+
+.thinking-body {
+  padding: 0.75rem 0.9rem;
+  font-size: 0.8rem;
+  color: #8b949e;
+  border-top: 1px solid #21262d;
+  white-space: pre-wrap;
+  font-family: ui-monospace, monospace;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+/* Mermaid SVG Container */
+.mermaid-wrapper {
+  background-color: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  margin: 1rem 0;
+  overflow-x: auto;
+  position: relative;
+}
+
+.mermaid-wrapper svg {
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
+
+/* Blinking cursor during streaming */
+.typing-cursor::after {
+  content: '▋';
+  color: #00F0FF;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}

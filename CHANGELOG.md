@@ -23,10 +23,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `prompts.py`: Production-grade system prompts for Databricks Medallion architecture and PySpark best practices.
   - **Automated Git Operations (`databricks_forge/core/git_ops.py`)**:
     - Automated staging, commit messages (`feat(etl): ...`), and remote push to GitHub with full audit trails.
-  - **Interactive Agentic Web Frontend (`databricks_forge/ui/web/app.py`)**:
-    - Built on Streamlit with dark theme, dynamic Ollama model selector, Databricks connection status, interactive Unity Catalog explorer, inline Mermaid.js diagram viewer, and Human-in-the-Loop ETL approval cards.
+  - **OpenWebUI Frontend SPA & FastAPI Backend (`databricks_forge/ui/`)**:
+    - High-performance dark-themed SPA inspired by OpenWebUI with real-time Server-Sent Events (SSE) token streaming.
+    - **Native ⏹️ Stop Button**: Instant cancellation of streaming via `AbortController` (and Esc key), terminating Ollama generation on the server.
+    - **DeepSeek-R1 `<think>` Accordion**: Collapsible thinking container with live reasoning timer.
+    - **Native Mermaid.js**: Direct client-side SVG rendering with copy and zoom controls.
+    - **Human-in-the-Loop ETL Approval Card**: Syntax highlighted PySpark Delta Lake code, dataflow diagram, Databricks execution, and automated Git commit/push.
+    - **OpenAI-Compatible API (`/v1/models` & `/v1/chat/completions`)**: Plug-and-play compatibility with official Open WebUI Desktop, LibreChat, or custom LLM clients.
   - **New CLI Commands**:
-    - `forge chat` & `forge ui`: Launches the local agentic web interface with `--port`, `--host`, and `--headless` options.
+    - `forge chat` & `forge ui`: Launches the local OpenWebUI interface with `--port`, `--host`, and `--no-browser` options.
 
 ---
 

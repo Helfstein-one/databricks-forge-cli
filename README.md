@@ -282,15 +282,16 @@ Consulte o guia completo em [`examples/medallion_lakehouse/README.md`](examples/
 
 ---
 
-## 🤖 Front Agentico, Camada Semântica & Geração de ETL
+## 🤖 OpenWebUI Agentico, Camada Semântica & Geração de ETL
 
-O **Databricks Forge CLI** conta com uma interface conversacional inteligente completa (`forge chat` / `forge ui`) construída com **Streamlit**, integrada nativamente a modelos de linguagem locais via **Ollama** (`llama3.2`, `deepseek-r1`), uma **Camada Semântica** ontológica conectada ao **Databricks Unity Catalog**, e um motor que transforma **Linguagem Natural em pipelines PySpark/SQL** com versionamento automático no GitHub.
+O **Databricks Forge CLI** conta com uma interface conversacional de padrão **OpenWebUI** (`forge chat` / `forge ui`) construída com **FastAPI**, **Server-Sent Events (SSE)** em tempo real, integrada nativamente a modelos de linguagem locais via **Ollama** (`llama3.2`, `deepseek-r1`), uma **Camada Semântica** ontológica conectada ao **Databricks Unity Catalog**, e um motor que transforma **Linguagem Natural em pipelines PySpark/SQL** com versionamento automático no GitHub.
 
 ```mermaid
 graph LR
-    subgraph UI["Front-End Agentico (`forge chat`)"]
+    subgraph UI["Front-End OpenWebUI (`forge chat`)"]
         User["👤 Usuário (Chat / Prompt)"]
-        StreamlitUI["💬 Streamlit UI + Ollama Streaming"]
+        ChatUI["💬 OpenWebUI SPA + SSE Streaming"]
+        StopBtn["⏹️ Botão Stop Nativo (AbortController)"]
         ApprovalCard["🛡️ Card de Aprovação (HITL)"]
     end
 
@@ -311,13 +312,14 @@ graph LR
         GitHubPush["🐙 Git Commit & Push Automático"]
     end
 
-    User --> StreamlitUI
-    StreamlitUI <--> OllamaEngine
-    StreamlitUI --> UCIntrospect
+    User --> ChatUI
+    ChatUI <--> OllamaEngine
+    StopBtn -.->|Interrompe stream imediatamente| ChatUI
+    ChatUI --> UCIntrospect
     UCIntrospect --> SemanticReg
     SemanticReg --> MermaidGen
-    MermaidGen --> StreamlitUI
-    StreamlitUI --> PySparkGen
+    MermaidGen --> ChatUI
+    ChatUI --> PySparkGen
     PySparkGen --> ApprovalCard
     ApprovalCard --> DAGUpd
     ApprovalCard --> DatabricksRun
@@ -325,16 +327,23 @@ graph LR
 ```
 
 ### Funcionalidades:
+- **Botão ⏹️ Stop Nativo & Cancelamento Imediato**:
+  - Durante qualquer geração em streaming, o botão de envio se transforma em um botão **"⏹️ Parar"** (ou tecla <kbd>Esc</kbd>).
+  - Interrompe a requisição no navegador via `AbortController` e cancela a iteração no servidor Ollama no mesmo instante.
+- **Suporte Nativo a DeepSeek-R1**:
+  - Detecta automaticamente blocos de raciocínio `<think>...</think>` e os organiza em um card colapsável animado (`🧠 Raciocínio (DeepSeek-R1)`).
 - **Camada Semântica Ontológica (`databricks_forge/semantic/`)**:
   - Inspeciona tabelas e metadados do **Databricks Unity Catalog** (ou catálogo local de referência).
   - Abstração em `Entity`, `Dimension`, `Metric` e `Relationship` persistida em `config/semantic_model.yaml`.
   - Compilador AST que traduz intenções analíticas em consultas Spark SQL seguras sem alucinações.
 - **Visualizações Mermaid & Plotly em Tempo Real**:
-  - Geração dinâmica de diagramas de entidade-relacionamento (`erDiagram`), linhagem Medallion Bronze $\rightarrow$ Silver $\rightarrow$ Gold e fluxo dos pipelines.
+  - Renderização direta no DOM com botões de cópia de código e zoom para diagramas `erDiagram` e linhagem Medallion.
 - **Geração de ETL via Linguagem Natural**:
-  - O agente interpreta a solicitação do usuário, sintetiza código PySpark pronto com `@pipeline_audit_step`, tratamento transacional Delta ACID e atualiza o `workflow.yaml`.
+  - O agente sintetiza código PySpark Delta Lake com auditoria (`@pipeline_audit_step`) e atualiza o `workflow.yaml`.
 - **Card de Aprovação Human-in-the-Loop & Git Push**:
-  - Pré-visualização do código e do diagrama com botão interativo para disparar a execução na Databricks Jobs API e persistir com commit/push automático na branch ativa do GitHub.
+  - Pré-visualização com syntax highlighting e botão para disparar a Jobs API v2.1 e comitar no GitHub.
+- **API Compatível com OpenAI (`http://localhost:8501/v1`)**:
+  - Expõe `/v1/models` e `/v1/chat/completions` para conectar qualquer cliente externo ou o app Desktop oficial do Open WebUI!
 
 ---
 
@@ -344,8 +353,8 @@ graph LR
 | Comando | Descrição |
 |---|---|
 | `forge init <name>` | Gera novo projeto Lakehouse com DAG, Docker, Chispa, Streaming, Formatos e CI/CD |
-| `forge chat` | Inicia o front-end conversacional com Ollama, camada semântica e geração de ETL |
-| `forge ui` | Alias para `forge chat` para iniciar a interface Web Streamlit |
+| `forge chat` | Inicia o OpenWebUI conversacional com Ollama, camada semântica e geração de ETL |
+| `forge ui` | Alias para `forge chat` para iniciar a interface Web OpenWebUI |
 | `forge build` | Compila o pacote `.whl` do projeto |
 | `forge deploy` | Envia Wheel, SQLs e Master DAG Runner para o Databricks Workspace |
 | `forge check` | Diagnóstico de pré-requisitos (Python, Java, Docker, Databricks API) |

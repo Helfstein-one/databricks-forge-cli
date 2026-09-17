@@ -1,0 +1,122 @@
+name: lakehouse_semantic_model
+version: 1.0.0
+description: ''
+entities:
+- name: bronze_raw_transactions
+  catalog: main
+  schema: default
+  table_name: bronze_raw_transactions
+  description: Dados brutos de transações de vendas com carimbo de tempo
+  medallion_layer: bronze
+  dimensions:
+  - name: transaction_id
+    column: transaction_id
+    data_type: string
+    description: ID único da transação
+    expression: null
+  - name: customer_id
+    column: customer_id
+    data_type: string
+    description: Identificador do cliente
+    expression: null
+  - name: status
+    column: status
+    data_type: string
+    description: Status da transação
+    expression: null
+  - name: raw_payload
+    column: raw_payload
+    data_type: string
+    description: Payload JSON bruto
+    expression: null
+  - name: _ingested_at
+    column: _ingested_at
+    data_type: timestamp
+    description: Data e hora de ingestão
+    expression: null
+  metrics:
+  - name: total_raw_transactions
+    formula: '*'
+    aggregation: COUNT
+    description: Total de transações brutas
+    format_type: integer
+  relationships: []
+- name: silver_transactions
+  catalog: main
+  schema: default
+  table_name: silver_transactions
+  description: Transações limpas, validadas e deduplicadas com regras de negócio
+  medallion_layer: silver
+  dimensions:
+  - name: transaction_id
+    column: transaction_id
+    data_type: string
+    description: Chave primária
+    expression: null
+  - name: customer_id
+    column: customer_id
+    data_type: string
+    description: Identificador do cliente
+    expression: null
+  - name: product_category
+    column: product_category
+    data_type: string
+    description: Categoria do produto
+    expression: null
+  - name: transaction_date
+    column: transaction_date
+    data_type: date
+    description: Data contábil
+    expression: null
+  - name: payment_method
+    column: payment_method
+    data_type: string
+    description: Método de pagamento
+    expression: null
+  metrics:
+  - name: total_revenue
+    formula: amount
+    aggregation: SUM
+    description: Faturamento total líquido
+    format_type: currency
+  - name: avg_ticket
+    formula: amount
+    aggregation: AVG
+    description: Ticket médio por transação
+    format_type: currency
+  - name: transaction_count
+    formula: '*'
+    aggregation: COUNT
+    description: Volume total de transações
+    format_type: integer
+  relationships: []
+- name: gold_sales_kpis
+  catalog: main
+  schema: default
+  table_name: gold_sales_kpis
+  description: Métricas agregadas diárias por categoria prontas para consumo em BI
+    e IA
+  medallion_layer: gold
+  dimensions:
+  - name: transaction_date
+    column: transaction_date
+    data_type: date
+    description: Data de apuração
+    expression: null
+  - name: product_category
+    column: product_category
+    data_type: string
+    description: Categoria
+    expression: null
+  metrics:
+  - name: daily_revenue
+    formula: total_revenue
+    aggregation: SUM
+    description: Receita total diária
+    format_type: currency
+  - name: daily_customers
+    formula: unique_customers
+    aggregation: SUM
+    description: Clientes únicos no dia
+    format_type: integer
+  relationships: []

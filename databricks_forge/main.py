@@ -1390,45 +1390,46 @@ def check(
 
 @app.command(name="chat")
 def chat(
-    port: int = typer.Option(8501, "--port", "-p", help="Port for the Streamlit web server."),
+    port: int = typer.Option(8501, "--port", "-p", help="Port for the OpenWebUI server."),
     host: str = typer.Option("localhost", "--host", "-h", help="Host address to bind to."),
     no_browser: bool = typer.Option(False, "--no-browser", help="Do not open browser automatically."),
 ):
-    """💬 Launch the Agentic Semantic Chat & ETL Generator UI (powered by Ollama & Streamlit)."""
+    """💬 Launch the OpenWebUI Semantic Chat & ETL Generator (with OpenAI-compatible API)."""
+    import uvicorn
+    import webbrowser
+    from databricks_forge.ui.server import create_app
+
+    url = f"http://{host}:{port}"
     console.print(Panel(
-        "[bold color(51)]⚡ Starting Databricks Forge Semantic Chat & ETL Generator UI[/bold color(51)]\n"
-        f"[dim]URL: http://{host}:{port}[/dim]",
+        "[bold color(51)]⚡ Starting Databricks Forge OpenWebUI Chat & ETL Generator[/bold color(51)]\n"
+        f"[dim]URL: {url}[/dim]\n"
+        f"[dim]OpenAI API Endpoint: {url}/v1[/dim]",
         border_style="color(201)",
     ))
 
-    app_file = Path(__file__).parent / "ui" / "web" / "app.py"
-    cmd = [
-        sys.executable,
-        "-m",
-        "streamlit",
-        "run",
-        str(app_file),
-        "--server.port",
-        str(port),
-        "--server.address",
-        host,
-    ]
-    if no_browser:
-        cmd.extend(["--server.headless", "true"])
+    if not no_browser:
+        def open_browser():
+            import time
+            time.sleep(0.8)
+            webbrowser.open(url)
 
+        import threading
+        threading.Thread(target=open_browser, daemon=True).start()
+
+    app_instance = create_app()
     try:
-        subprocess.run(cmd)
+        uvicorn.run(app_instance, host=host, port=port, log_level="warning")
     except KeyboardInterrupt:
         console.print("\n[yellow]Stopping Databricks Forge UI...[/yellow]")
 
 
 @app.command(name="ui")
 def ui(
-    port: int = typer.Option(8501, "--port", "-p", help="Port for the Streamlit web server."),
+    port: int = typer.Option(8501, "--port", "-p", help="Port for the OpenWebUI server."),
     host: str = typer.Option("localhost", "--host", "-h", help="Host address to bind to."),
     no_browser: bool = typer.Option(False, "--no-browser", help="Do not open browser automatically."),
 ):
-    """🌐 Alias for 'forge chat' - Launch the Agentic Web UI."""
+    """🌐 Alias for 'forge chat' - Launch OpenWebUI."""
     chat(port=port, host=host, no_browser=no_browser)
 
 
